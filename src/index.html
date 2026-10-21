@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' sath-image:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>SATH Escritorio</title>
+<link rel="stylesheet" href="styles.css">
+<script src="renderer.js" defer></script>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand"><span class="brand-symbol">S</span><div>SATH <span>ESCRITORIO</span></div></div>
+  <div class="workspace-label">ESPACIO DE TRABAJO</div>
+  <nav aria-label="Navegación principal">
+    <button class="nav active" data-view="documents"><span>▤</span> Documentos <b id="document-count">0</b></button>
+    <button class="nav" data-view="templates"><span>▧</span> Plantillas A4 <b id="template-count">2</b></button>
+    <button class="nav" data-view="settings"><span>⚙</span> Datos y respaldos</button>
+  </nav>
+  <div class="sidebar-bottom"><div class="offline"><i></i> Sin conexión, sin complicaciones</div><p>Tus documentos permanecen<br>en este equipo.</p><span id="app-version">Versión 1.0.0</span></div>
+</aside>
+<div class="app-shell">
+  <header class="topbar"><div class="breadcrumbs">Mi espacio <span>/</span> <strong id="breadcrumb">Documentos</strong></div><div id="save-status" role="status"><i></i> Todos los cambios guardados</div></header>
+  <main>
+    <section id="documents-view">
+      <div class="page-heading"><div><div class="eyebrow">GESTIÓN DOCUMENTAL</div><h1>De los datos al documento.</h1><p>Completa, revisa e imprime. Todo en un solo lugar.</p></div><button class="primary" id="new-document">＋ Nuevo documento</button></div>
+      <div class="documents-layout">
+        <div class="document-panel panel"><div class="panel-title"><h2>Mis documentos</h2><span id="list-count">0</span></div><label class="search"><span>⌕</span><input id="search" placeholder="Buscar documento…" aria-label="Buscar documento"></label><div id="document-list"></div></div>
+        <div class="editor-area">
+          <div id="empty-state" class="panel empty-state"><span class="empty-icon">▤</span><h2>Tu próximo documento empieza aquí</h2><p>Elige una plantilla, completa los datos y obtén<br>un documento A4 listo para imprimir.</p><button id="empty-new" class="primary">Crear mi primer documento</button><div class="empty-features"><span>✓ Guardado automático</span><span>✓ PDF e impresión</span></div></div>
+          <div id="document-editor" hidden>
+            <div class="document-toolbar panel"><div class="document-identity"><input id="document-title" maxlength="160" aria-label="Nombre del documento"><span id="document-template-name"></span></div><div class="toolbar-actions"><button id="duplicate-document" title="Duplicar documento">Duplicar</button><button id="delete-document" class="danger subtle" title="Eliminar documento">Eliminar</button></div></div>
+            <div class="work-grid">
+              <section class="panel form-panel"><div class="panel-title"><h2>Datos del formulario</h2><span id="completion">0 %</span></div><div class="progress-track"><div id="progress"></div></div><p class="help">Los cambios se guardan automáticamente.</p><form id="fields-form" autocomplete="off"></form></section>
+              <section class="preview-panel"><div class="preview-bar"><div><span class="live-dot"></span><strong>Vista previa</strong><span class="a4-tag">A4 · 210 × 297 mm</span></div><label>Zoom <select id="zoom" aria-label="Zoom de vista previa"><option value="fit">Ajustar</option><option value="0.75">75 %</option><option value="1">100 %</option><option value="1.25">125 %</option></select></label></div><div class="paper-viewport" id="preview-viewport"><div class="paper-stage"><div class="paper" id="document-paper"></div></div></div><div class="output-bar panel"><label class="switch-label"><input type="checkbox" id="with-background" checked> Incluir plantilla de fondo</label><div><button id="print-document">Imprimir</button><button class="primary" id="pdf-document">↓ Guardar PDF</button></div></div><p class="preview-note">Desactiva el fondo para imprimir sobre un formulario físico.</p></section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="templates-view" hidden>
+      <div class="page-heading"><div><div class="eyebrow">TU BIBLIOTECA</div><h1>Plantillas que trabajan por ti.</h1><p>Una imagen A4, campos ajustables y todos tus formularios organizados.</p></div><button class="primary" id="new-template">＋ Nueva plantilla</button></div>
+      <div id="templates-grid" class="templates-grid"></div>
+      <div id="template-editor" class="panel" hidden>
+        <div class="template-editor-header"><div><div class="eyebrow">EDITOR DE PLANTILLA</div><input id="template-name" maxlength="160" aria-label="Nombre de plantilla"></div><div><button id="import-image">Cambiar imagen</button><button id="duplicate-template">Duplicar</button><button id="delete-template" class="danger subtle">Eliminar</button><button id="close-template">Cerrar editor</button></div></div>
+        <div class="template-work-grid"><div class="template-tools"><h2>Campos del formulario</h2><p class="help">Selecciona un campo y arrástralo sobre la hoja. Las medidas son porcentajes de la página.</p><button id="add-field" class="primary full">＋ Añadir campo</button><div id="field-list"></div><form id="field-properties"></form></div><div><div class="calibration-notice">◉ Los cambios se aplican a todos los documentos de esta plantilla.</div><div id="template-viewport" class="paper-viewport calibration"><div class="paper-stage"><div id="template-paper" class="paper editable"></div></div></div></div></div>
+      </div>
+    </section>
+    <section id="settings-view" hidden>
+      <div class="page-heading"><div><div class="eyebrow">CONTROL LOCAL</div><h1>Tu información, contigo.</h1><p>Guarda una copia de tus documentos y plantillas antes de cambiar de equipo.</p></div></div>
+      <div class="settings-grid"><article class="panel settings-card"><span class="card-icon">▣</span><h2>Archivos en este equipo</h2><p>Las imágenes son archivos JPG o PNG. Los documentos se guardan por separado y no necesitan Internet.</p><code id="data-path"></code><button id="open-folder">Abrir carpeta de datos</button><p class="help">En Windows, la carpeta <strong>datos</strong> está junto al programa instalado. No la borres ni la muevas mientras utilizas la aplicación.</p></article><article class="panel settings-card"><span class="card-icon">↗</span><h2>Respaldar y recuperar</h2><p>Un respaldo incluye todos los documentos, las plantillas y sus imágenes. Guárdalo en otra unidad o en una carpeta segura.</p><button id="backup" class="primary">Crear respaldo completo</button><button id="restore">Restaurar respaldo…</button><p class="help">Para restaurar, selecciona <strong>documentos.json</strong> dentro de un respaldo y conserva su carpeta <strong>imagenes</strong>.</p></article></div>
+      <div class="info-note">La copia automática conserva la versión anterior del archivo de datos. Un respaldo externo te protege también si se pierde o falla el equipo. Los respaldos contienen datos personales: guárdalos en un lugar privado.</div>
+    </section>
+  </main>
+</div>
+<dialog id="new-dialog"><form id="new-form"><div class="eyebrow">NUEVO DOCUMENTO</div><h2>Empecemos con una plantilla.</h2><p>Podrás revisar y modificar los datos antes de imprimir.</p><label>Nombre del documento<input id="new-title" maxlength="160" placeholder="Ej. Solicitud de Juan Pérez" required></label><label>Plantilla<select id="new-template-select" required></select></label><div class="dialog-actions"><button type="button" id="cancel-new">Cancelar</button><button type="submit" class="primary">Crear documento</button></div></form></dialog>
+<dialog id="confirm-dialog"><h2 id="confirm-title"></h2><p id="confirm-description"></p><div class="dialog-actions"><button id="cancel-confirm">Cancelar</button><button id="accept-confirm" class="danger">Eliminar</button></div></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

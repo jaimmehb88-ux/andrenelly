@@ -1,0 +1,59 @@
+{
+  "name": "sath-escritorio",
+  "version": "1.0.0",
+  "description": "Formularios SATH, plantillas A4 y documentos locales para Windows",
+  "private": true,
+  "author": "Andrenelly",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "test:ui": "node test/ui.cjs",
+    "pack": "electron-builder --dir",
+    "dist:win": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3",
+    "playwright-core": "1.64.1"
+  },
+  "build": {
+    "appId": "pe.andrenelly.sath",
+    "productName": "SATH Escritorio",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SATH-Escritorio-${version}-Instalador.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "include": "build/installer.nsh",
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "es_ES"
+      ],
+      "language": "3082",
+      "script": "build/windows.nsi"
+    }
+  }
+}
