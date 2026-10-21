@@ -2,6 +2,7 @@ name: Compilar instalador de Windows
 on:
   workflow_dispatch:
   push:
+    branches: ['main']
     tags: ['v*']
 permissions:
   contents: read
@@ -19,9 +20,19 @@ jobs:
       - run: npm ci
       - run: npx install-electron
       - run: npm test
-      - run: npm run dist:win
+      - name: Compilar instalador
+        shell: pwsh
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npm run dist:win 2>&1 | Tee-Object -FilePath build-windows.log
+          $buildExit = $LASTEXITCODE
+          if ($buildExit -ne 0) {
+            $detail = (Get-Content build-windows.log -Tail 90) -join "`n"
+            $detail = $detail.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Error al compilar Windows::$detail"
+            exit $buildExit
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: SATH-Escritorio-Instalador-Windows
