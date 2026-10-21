@@ -10,7 +10,7 @@
     "test": "node --test test/*.test.cjs",
     "test:ui": "node test/ui.cjs",
     "pack": "electron-builder --dir",
-    "dist:win": "electron-builder --win nsis --x64"
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
     "electron": "45.0.0",
