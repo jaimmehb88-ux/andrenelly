@@ -1,6 +1,6 @@
 Aplicación de escritorio para Windows 10/11 de 64 bits.
 
-Descarga y ejecuta **SATH-Escritorio-1.0.0-Instalador.exe** en la sección **Assets / Recursos** de esta página.
+Descarga y ejecuta **SATH-Escritorio-1.0.1-Instalador.exe** en la sección **Assets / Recursos** de esta página.
 
 - Formularios SATH con vista previa A4, PDF e impresión con o sin fondo.
 - Documentos con guardado automático y búsqueda.

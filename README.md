@@ -16,7 +16,7 @@ La edición de una plantilla afecta a todos sus documentos. Duplica la plantilla
 
 ## Instalar en Windows
 
-Ejecuta `SATH-Escritorio-1.0.0-Instalador.exe` y conserva preferiblemente la ubicación por usuario propuesta. El instalador permite elegir otra carpeta que tu usuario pueda modificar; evita carpetas protegidas como `Program Files`. No requiere privilegios de administrador. Incluye accesos directos y desinstalador.
+Ejecuta `SATH-Escritorio-1.0.1-Instalador.exe` y conserva preferiblemente la ubicación por usuario propuesta. El instalador permite elegir otra carpeta que tu usuario pueda modificar; evita carpetas protegidas como `Program Files`. No requiere privilegios de administrador. Incluye accesos directos y desinstalador.
 
 Los datos quedan junto a `SATH Escritorio.exe`:
 
@@ -58,7 +58,7 @@ npm test
 npm run dist:win
 ```
 
-Resultado: `dist/SATH-Escritorio-1.0.0-Instalador.exe`. El workflow **Compilar instalador de Windows** permite ejecutar la compilación manualmente desde GitHub Actions o al subir una etiqueta `v*`, y guarda el instalador como artefacto. Al subir una etiqueta `v*`, también publica el instalador en GitHub Releases con un enlace de descarga. Las ejecuciones manuales guardan el artefacto sin publicar una versión.
+Resultado: `dist/SATH-Escritorio-1.0.1-Instalador.exe`. El workflow **Compilar instalador de Windows** permite ejecutar la compilación manualmente desde GitHub Actions o al subir una etiqueta `v*`, y guarda el instalador como artefacto. Al subir una etiqueta `v*`, también publica el instalador en GitHub Releases con un enlace de descarga. Las ejecuciones manuales guardan el artefacto sin publicar una versión.
 
 Para ejecutar desde Linux en este entorno de nube:
 
