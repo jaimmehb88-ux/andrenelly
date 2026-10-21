@@ -70,7 +70,11 @@ Section "SATH Escritorio" SEC_MAIN
   Call CheckDirectory
   SetOutPath "$INSTDIR"
   ; File instructions retain NSIS error handling and the built-in data checks.
-  File /r "${PROJECT_DIR}/dist/win-unpacked/*.*"
+  !ifdef NSIS_WIN32_MAKENSIS
+    File /r "${PROJECT_DIR}\dist\win-unpacked\*.*"
+  !else
+    File /r "${PROJECT_DIR}/dist/win-unpacked/*.*"
+  !endif
   WriteUninstaller "$INSTDIR\${UNINSTALL_FILENAME}"
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
