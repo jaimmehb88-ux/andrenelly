@@ -4,25 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' sath-image: sath-scan:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>SATH Escritorio</title>
+<title>Andrenelly · Formularios SATH</title>
 <link rel="stylesheet" href="styles.css">
 <script src="scene.js" defer></script>
 <script src="completion.js" defer></script>
 <script src="autocomplete.js" defer></script>
 <script src="scans.js" defer></script>
+<script src="access-ui.js" defer></script>
 <script src="renderer.js" defer></script>
 </head>
 <body>
+<section id="welcome" aria-label="Bienvenida">
+  <div class="welcome-content"><div class="eyebrow">BIENVENIDO A TU ESPACIO</div>
+  <div class="welcome-logos"><img src="../assets/logo-andrenelly.jpg" alt="Bazar Superclean Andrenelly"><img src="../assets/logo-sath.png" alt="SATH · Servicio de Administración Tributaria de Huancayo"></div>
+  <h1>Andrenelly · Formularios SATH</h1><p>Organiza. Completa. Imprime.</p>
+  <p class="identity-note">Herramienta de Andrenelly para completar formularios de SATH, entidad pública.<br>La presentación de los logos no implica un convenio ni un desarrollo oficial de SATH.</p>
+  <button id="skip-welcome" class="primary">Omitir bienvenida</button></div>
+</section>
 <aside class="sidebar">
-  <div class="brand"><span class="brand-symbol">S</span><div>SATH <span>ESCRITORIO</span></div></div>
+  <div class="brand brand-v3"><div class="brand-logos"><img src="../assets/logo-andrenelly.jpg" alt="Bazar Superclean Andrenelly"><img src="../assets/logo-sath.png" alt="SATH"></div><strong>Andrenelly<span>Formularios SATH</span></strong></div>
   <div class="workspace-label">ESPACIO DE TRABAJO</div>
   <nav aria-label="Navegación principal">
     <button class="nav active" data-view="documents"><span>▤</span> Documentos <b id="document-count">0</b></button>
     <button class="nav" data-view="templates"><span>▧</span> Plantillas A4 <b id="template-count">2</b></button>
-    <button class="nav" data-view="scans"><span>▣</span> Escaneos Pro <b>2.0</b></button>
+    <button class="nav" data-view="scans"><span>▣</span> Escaneos Pro <b>3.0</b></button>
     <button class="nav" data-view="settings"><span>⚙</span> Datos y respaldos</button>
   </nav>
-  <div class="sidebar-bottom"><div class="offline"><i></i> Sin conexión, sin complicaciones</div><p>Tus documentos permanecen<br>en este equipo.</p><span id="app-version">Versión 2.0.0</span></div>
+  <button id="developer-mode" class="nav">⚙ Modo desarrollador</button><div id="access-status" class="access-status">Modo estándar</div>
+  <div class="sidebar-bottom"><div class="offline"><i></i> Sin conexión, sin complicaciones</div><p>Tus documentos permanecen<br>en este equipo.</p><span id="app-version">Versión 3.0.0</span></div>
 </aside>
 <div class="app-shell">
   <header class="topbar"><div class="breadcrumbs">Mi espacio <span>/</span> <strong id="breadcrumb">Documentos</strong></div><div id="save-status" role="status"><i></i> Todos los cambios guardados</div></header>
@@ -60,6 +69,8 @@
 </div>
 <dialog id="new-dialog"><form id="new-form"><div class="eyebrow">NUEVO DOCUMENTO</div><h2>Empecemos con una plantilla.</h2><p>Podrás revisar y modificar los datos antes de imprimir.</p><label>Nombre del documento<input id="new-title" maxlength="160" placeholder="Ej. Solicitud de Juan Pérez" required></label><label>Plantilla<select id="new-template-select" required></select></label><div class="dialog-actions"><button type="button" id="cancel-new">Cancelar</button><button type="submit" class="primary">Crear documento</button></div></form></dialog>
 <dialog id="confirm-dialog"><h2 id="confirm-title"></h2><p id="confirm-description"></p><div class="dialog-actions"><button id="cancel-confirm">Cancelar</button><button id="accept-confirm" class="danger">Eliminar</button></div></dialog>
+<dialog id="developer-login"><form id="developer-login-form"><div class="eyebrow">ACCESO LOCAL</div><h2>Modo desarrollador</h2><label>Contraseña<input type="password" id="developer-password" autocomplete="current-password" maxlength="256" required></label><p id="developer-error" role="alert"></p><div class="dialog-actions"><button type="button" id="developer-cancel">Cancelar</button><button type="submit" class="primary">Entrar</button></div></form></dialog>
+<dialog id="developer-panel"><div class="eyebrow">SESIÓN AUTENTICADA</div><h2>Modo desarrollador</h2><p>Administra las herramientas de esta instalación. Los documentos y proyectos se conservan al cambiar de modo.</p><p id="pro-status"></p><button id="toggle-pro" class="primary">Activar modo Pro</button><div class="dialog-actions"><button id="dev-scans">Escaneos Pro</button><button id="dev-template">Nueva plantilla</button></div><form id="password-form"><label>Nueva contraseña<input type="password" id="new-password" autocomplete="new-password" minlength="4" maxlength="256" required></label><label>Repite la contraseña<input type="password" id="repeat-password" autocomplete="new-password" minlength="4" maxlength="256" required></label><button type="submit">Cambiar contraseña</button><p id="password-message" role="status"></p></form><div class="dialog-actions"><button id="developer-close">Volver</button><button id="developer-logout">Salir del modo desarrollador</button></div></dialog>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

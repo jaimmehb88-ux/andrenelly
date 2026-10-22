@@ -1,3 +1,4 @@
+// All identity values below are synthetic test fixtures, never customer data.
 const {_electron:electron}=require('playwright-core');
 const fs=require('node:fs/promises');
 const path=require('node:path');
@@ -12,7 +13,7 @@ async function launch(){return electron.launch({args:[root],env:{...process.env,
 async function run(){
  await fs.rm(out,{recursive:true,force:true});await fs.mkdir(data,{recursive:true});await fs.mkdir(folder);
  const templates=JSON.parse(await fs.readFile(path.join(root,'assets','templates.json'),'utf8'));
- const old={version:1,templates,documents:[{id:'previous-person',title:'Datos anteriores de María',templateId:'hoja_1',updatedAt:'2026-01-01T10:00:00.000Z',values:{p_custom_2:'12345678',p_custom_5:'MARÍA PÉREZ',p_custom_6:'AV SOL 100',p_1:'OLD111'}},{id:'current-person',title:'Solicitud actual',templateId:'hoja_1',updatedAt:'2026-01-02T10:00:00.000Z',values:{p_custom_2:'12345678',p_custom_5:'NO REEMPLAZAR',p_1:'NEW999'}}]};
+ const old={version:1,templates,documents:[{id:'previous-person',title:'Datos ficticios anteriores',templateId:'hoja_1',updatedAt:'2026-01-01T10:00:00.000Z',values:{p_custom_2:'00000000',p_custom_5:'PERSONA FICTICIA',p_custom_6:'DOMICILIO FICTICIO',p_1:'OLD111'}},{id:'current-person',title:'Solicitud actual',templateId:'hoja_1',updatedAt:'2026-01-02T10:00:00.000Z',values:{p_custom_2:'00000000',p_custom_5:'NO REEMPLAZAR',p_1:'NEW999'}}]};
  await fs.writeFile(path.join(data,'documentos.json'),JSON.stringify(old));
  const base=await sharp({create:{width:200,height:160,channels:3,background:'#2555bb'}}).composite([{input:await sharp({create:{width:80,height:80,channels:3,background:'#ef542d'}}).png().toBuffer(),left:10,top:10}]).png().toBuffer();
  for(let i=0;i<8;i++){const file=path.join(folder,`escaneo-${i}.png`);await fs.writeFile(file,base);const date=new Date(Date.now()-20000+i*1000);await fs.utimes(file,date,date);}
@@ -22,13 +23,13 @@ async function run(){
  async function destination(file){await app.evaluate(({dialog},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});},file);}
  async function configure({history=false,enabled=true,fieldEnabled=true,values=''}={}){await page.locator('#configure-completion').click();await page.locator('#completion-enabled').setChecked(enabled);await page.locator('#completion-history').setChecked(history);await page.locator('#completion-field').selectOption('p_1');await page.locator('#completion-field-enabled').setChecked(fieldEnabled);await page.locator('#completion-values').fill(values);await page.locator('#completion-save').click();await page.locator('#completion-dialog').waitFor({state:'hidden'});}
  try{
-  await page.locator('#document-title').waitFor();let loaded=await page.evaluate(()=>window.sath.load());assert.equal(loaded.state.version,2);assert.equal(loaded.migrated,true);assert.deepEqual(loaded.state.documents,old.documents);assert.equal(loaded.state.settings.autocomplete.history,false);
+  await page.locator('#document-title').waitFor();await page.locator('#skip-welcome').click().catch(()=>{});await page.evaluate(async()=>{await window.sath.login('user2');await window.sath.setPro(true);});await page.evaluate(()=>{accessState={developer:true,pro:true};refreshAccess();});let loaded=await page.evaluate(()=>window.sath.load());assert.equal(loaded.state.version,2);assert.equal(loaded.migrated,true);assert.deepEqual(loaded.state.documents,old.documents);assert.equal(loaded.state.settings.autocomplete.history,false);
   assert.equal((await fs.readdir(path.join(data,'respaldos','migraciones'))).length,1);assert.equal(await page.locator('#lookup-person').isDisabled(),true);
   await configure({values:'AB100\nAB200'});assert.deepEqual(await page.locator('#suggestions-p_1 option').evaluateAll(options=>options.map(o=>o.value)),['AB100','AB200']);
   await configure({values:'AB250'});assert.deepEqual(await page.locator('#suggestions-p_1 option').evaluateAll(options=>options.map(o=>o.value)),['AB250']);
   await configure({history:true,values:'AB250'});assert.ok((await page.locator('#suggestions-p_1 option').evaluateAll(options=>options.map(o=>o.value))).includes('OLD111'));
   await page.locator('#lookup-person').click();await page.locator('#person-changes').waitFor();assert.equal(await page.locator('#input-p_custom_5').inputValue(),'NO REEMPLAZAR');await page.locator('#person-cancel').click();assert.equal(await page.locator('#input-p_custom_5').inputValue(),'NO REEMPLAZAR');
-  await page.locator('#lookup-person').click();await page.locator('#person-apply').click();assert.equal(await page.locator('#input-p_custom_5').inputValue(),'MARÍA PÉREZ');assert.equal(await page.locator('#input-p_1').inputValue(),'NEW999');
+  await page.locator('#lookup-person').click();await page.locator('#person-apply').click();assert.equal(await page.locator('#input-p_custom_5').inputValue(),'PERSONA FICTICIA');assert.equal(await page.locator('#input-p_1').inputValue(),'NEW999');
   await configure({history:true,fieldEnabled:false,values:'AB250'});assert.equal(await page.locator('#input-p_1').getAttribute('list'),null);await configure({enabled:false,history:true,values:'AB250'});assert.equal(await page.locator('#lookup-person').isDisabled(),true);await configure({enabled:true,history:true,values:'AB250'});
   const formPNG=path.join(out,'formulario.png');await destination(formPNG);await page.locator('#png-document').click();await exists(formPNG);assert.equal((await sharp(formPNG).metadata()).width,1240);
   console.log('PASS: migración, sugerencias, preferencias por campo e historial, confirmación por DNI sin reemplazar el trámite.');
@@ -58,7 +59,7 @@ async function run(){
   await page.locator('#scene-zoom').selectOption('1.5');const extent=await page.locator('#scene-viewport').evaluate(n=>n.scrollWidth>n.clientWidth);assert.ok(extent);await page.locator('#scene-pan').click();assert.equal(await page.locator('#scene-pan').getAttribute('aria-pressed'),'true');await page.locator('#scene-pan').click();await page.locator('#scene-zoom').selectOption('fit');
   await page.screenshot({path:path.join(out,'escaneos-pro.png'),fullPage:true});
   console.log('PASS: galería, editor, texto, arrastre, bloqueo, orden, deshacer/rehacer, filtros, recorte, PNG/JPG/PDF y protección de originales.');
-  await page.locator('#scene-from-template').click();await page.locator('#scene-source').selectOption('d:current-person');await page.locator('#scene-source-load').click();await page.locator('#scene-background').waitFor();assert.equal(await page.locator('#scene-background').isChecked(),true);assert.ok((await page.locator('#scene-canvas').innerHTML()).includes('MARÍA PÉREZ'));await page.locator('#scene-background').uncheck();assert.equal(await page.locator('#scene-canvas image').count(),0);await page.locator('#scene-fields').uncheck();assert.equal(await page.locator('#scene-canvas text').count(),0);await page.locator('#scene-background').check();await page.locator('#scene-fields').check();
+  await page.locator('#scene-from-template').click();await page.locator('#scene-source').selectOption('d:current-person');await page.locator('#scene-source-load').click();await page.locator('#scene-background').waitFor();assert.equal(await page.locator('#scene-background').isChecked(),true);assert.ok((await page.locator('#scene-canvas').innerHTML()).includes('PERSONA FICTICIA'));await page.locator('#scene-background').uncheck();assert.equal(await page.locator('#scene-canvas image').count(),0);await page.locator('#scene-fields').uncheck();assert.equal(await page.locator('#scene-canvas text').count(),0);await page.locator('#scene-background').check();await page.locator('#scene-fields').check();
   // The watcher must update by itself: no click on Actualizar.
   await fs.writeFile(path.join(folder,'nueva.webp'),await sharp(base).webp().toBuffer());await page.waitForFunction(()=>document.querySelector('.scan-card-info strong')?.textContent==='nueva.webp');
   await fs.rm(path.join(folder,'nueva.webp'));await page.waitForFunction(()=>document.querySelector('.scan-card-info strong')?.textContent==='escaneo-7.png');
@@ -73,4 +74,4 @@ async function run(){
  }catch(error){console.error('Último mensaje de la aplicación:',await page.locator('#toast').textContent().catch(()=>''));console.error(error);if(process.env.GITHUB_ACTIONS)console.error('::error title=Prueba funcional v2::'+String(error.stack||error).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A'));await page.screenshot({path:path.join(out,'error.png'),fullPage:true}).catch(()=>{});throw error;}
  finally{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});await app.close().catch(()=>{});}
 }
-run().catch(()=>{process.exitCode=1;});
+run().catch(error=>{console.error(error);process.exitCode=1;});

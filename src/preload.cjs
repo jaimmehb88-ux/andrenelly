@@ -5,6 +5,7 @@ const call = async (channel, ...args) => {
   return result.value;
 };
 contextBridge.exposeInMainWorld('sath', {
+  login:password=>call('access-login',password), logout:()=>call('access-logout'), changePassword:password=>call('access-password',password), setPro:enabled=>call('access-pro',enabled),
   load: () => call('load'), save: state => call('save',state),
   importAsset:()=>call('asset-import'), scanFolder:()=>call('scan-folder'), scanList:(all=false)=>call('scan-list',all), scanImport:token=>call('scan-import',token), sceneOutput:options=>call('scene-output',options), batchOutput:options=>call('batch-output',options), onScans:callback=>ipcRenderer.on('scan-change',(_event,snapshot)=>callback(snapshot)),
   importImage: () => call('import-image'), backup: () => call('backup'), restore: () => call('restore'),

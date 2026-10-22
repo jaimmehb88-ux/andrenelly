@@ -1,7 +1,7 @@
 {
   "name": "sath-escritorio",
-  "version": "2.0.0",
-  "description": "Formularios SATH y Escaneos Pro: edición A4, autocompletado y documentos locales para Windows",
+  "version": "3.0.0",
+  "description": "Formularios SATH y Escaneos Pro: ediciÃ³n A4, autocompletado y documentos locales para Windows",
   "private": true,
   "author": "Andrenelly",
   "main": "src/main.cjs",
@@ -12,7 +12,8 @@
     "pack": "electron-builder --dir",
     "dist:win": "electron-builder --win nsis --x64 --publish never",
     "test:ui:v2": "node test/ui-v2.cjs",
-    "test:packaged": "node test/packaged.cjs"
+    "test:packaged": "node test/packaged.cjs",
+    "test:ui:v3": "node test/ui-v3.cjs"
   },
   "devDependencies": {
     "electron": "45.0.0",
@@ -21,7 +22,7 @@
   },
   "build": {
     "appId": "pe.andrenelly.sath",
-    "productName": "SATH Escritorio",
+    "productName": "Andrenelly · Formularios SATH",
     "asar": true,
     "directories": {
       "output": "dist"
@@ -56,7 +57,8 @@
       ],
       "language": "3082",
       "script": "build/windows.nsi"
-    }
+    },
+    "executableName": "SATH Escritorio"
   },
   "dependencies": {
     "sharp": "0.35.5"

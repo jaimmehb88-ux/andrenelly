@@ -94,6 +94,20 @@ class Store {
     if (migrated || recovered) await this.save(state,!recovered);
     return {state,recovered,migrated};
   }
+  async backupForUpgrade(version) {
+    const marker=path.join(this.root,'actualizacion-'+version+'.json');
+    try { await fs.access(marker);return; } catch(error) { if(error.code!=='ENOENT')throw error; }
+    const folder=path.join(this.root,'respaldos','antes-de-'+version+'-'+randomUUID());
+    await fs.mkdir(folder,{recursive:true});
+    for(const entry of await fs.readdir(this.root,{withFileTypes:true})) {
+      // Chromium profile caches are live/locked; application preferences live in documentos.json.
+      if(['respaldos','perfil'].includes(entry.name))continue;
+      if(entry.isSymbolicLink())throw new Error('No se puede respaldar un enlace de datos.');
+      await fs.cp(path.join(this.root,entry.name),path.join(folder,entry.name),{recursive:true,errorOnExist:true,force:false});
+    }
+    await fs.writeFile(marker,JSON.stringify({version,backup:folder,createdAt:new Date().toISOString()}),{flag:'wx'});
+    return folder;
+  }
   async save(state, preserve = true) {
     validate(state);
     for (const t of imageReferences(state)) if (t.image) await fs.access(path.join(this.images, t.image));

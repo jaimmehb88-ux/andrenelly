@@ -24,7 +24,7 @@ jobs:
         run: |
           $targetVersion = (Get-Content package.json | ConvertFrom-Json).version
           New-Item -ItemType Directory -Force .test-installers | Out-Null
-          foreach ($version in @('1.0.1', $targetVersion)) {
+          foreach ($version in @('2.0.0', $targetVersion)) {
             $tag = "v$version"
             $name = "SATH-Escritorio-$version-Instalador.exe"
             $ready = $false

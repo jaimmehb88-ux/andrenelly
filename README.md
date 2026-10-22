@@ -1,10 +1,10 @@
-# SATH Escritorio 2.0
+# Andrenelly · Formularios SATH 3.0.0
 
 Aplicación local para Windows 10/11 de 64 bits: formularios SATH, autocompletado configurable y **Escaneos Pro**. No necesita Internet después de instalarla. Los documentos, ajustes e imágenes se guardan en el equipo, sin imágenes Base64 ni servicios externos.
 
 ## Descargar y actualizar
 
-En [GitHub Releases](https://github.com/jaimmehb88-ux/andrenelly/releases) descarga `SATH-Escritorio-2.0.0-Instalador.exe`. Cierra SATH antes de instalar y conserva la misma carpeta de la versión anterior. La ubicación por usuario propuesta permite guardar datos sin permisos de administrador; evita `Program Files` u otras carpetas protegidas.
+En [GitHub Releases](https://github.com/jaimmehb88-ux/andrenelly/releases) descarga `SATH-Escritorio-3.0.0-Instalador.exe`. Cierra SATH antes de instalar y conserva la misma carpeta de la versión anterior. La ubicación por usuario propuesta permite guardar datos sin permisos de administrador; evita `Program Files` u otras carpetas protegidas.
 
 La aplicación conserva su identidad y la carpeta `datos`. En el primer inicio con datos v1, crea un respaldo completo en `datos/respaldos/migraciones` **antes** de actualizar el formato. Si ese respaldo falla, no migra ni sobrescribe el archivo anterior. Los documentos y las plantillas existentes se conservan. Las versiones anteriores siguen disponibles en Releases.
 
@@ -125,3 +125,25 @@ El script NSIS genera instalador y desinstalador sin ejecutar binarios Windows e
 `src/store.cjs` gestiona datos, migración y respaldos; `assets.cjs` valida e importa imágenes; `scanner.cjs` vigila carpetas; `scene.js` es la composición compartida de vista previa/salida; `output.cjs` exporta e imprime; `completion.js` resuelve sugerencias y datos personales; `autocomplete.js` y `scans.js` implementan sus interfaces. Se conservan los módulos de documentos y plantillas de la versión anterior.
 
 La ventana mantiene aislamiento de contexto, Node.js desactivado y operaciones IPC específicas. Los protocolos de imagen validan nombres o identificadores de archivos elegidos desde la carpeta configurada. Los textos se escapan antes de componer la salida. No se ejecuta código generado por el usuario ni se incrustan credenciales.
+
+## Novedades 3.0.0
+
+Los logos originales de Bazar Superclean Andrenelly y de SATH se presentan conjuntamente con una bienvenida omisible. Se respeta `prefers-reduced-motion`. SATH es una entidad pública; la presentación no implica convenio ni desarrollo oficial.
+
+**Modo desarrollador** está en la pantalla principal. La contraseña inicial es `user2`; puede cambiarse dentro del panel. El proceso principal compara una derivación scrypt con sal aleatoria y nunca entrega el hash al renderer. La sesión termina al salir o reiniciar. `datos/acceso.json` guarda el hash y el estado Pro de la instalación, separado de los documentos. Es un control de funciones local, no un sistema de cifrado de archivos frente al propietario del equipo.
+
+Pro está desactivado inicialmente. Los usuarios pueden completar, usar plantillas e imprimir. Escaneos Pro y Nueva plantilla se abren desde el panel autenticado. **Activar modo Pro** los muestra en la interfaz principal para todos los usuarios de la instalación; **Desactivar modo Pro** los restringe sin borrar información. El guardado y los IPC comprueban la autorización. Restaurar respaldos que contienen plantillas/proyectos también requiere Pro o sesión de desarrollador.
+
+En Escaneos Pro, selecciona una imagen y arrastra uno de los ocho tiradores. Las esquinas conservan su proporción actual; desmarca **Conservar proporción al arrastrar esquinas** para cambiarla. Los bordes ajustan una dimensión. Las medidas se muestran en píxeles de la página, independientemente del zoom. Cada arrastre completo es un paso de deshacer; cancelar el puntero revierte el ajuste. El archivo original no se modifica.
+
+La primera apertura de 3.0.0 crea un respaldo en `datos/respaldos/antes-de-3.0.0-*` antes de crear los ajustes de acceso. Incluye imágenes sin referencia, proyectos y preferencias. No se modifica el formato de documentos v2 ni se restaura la caché temporal del navegador.
+
+### Validación 3.0.0
+
+- `npm test`: almacenamiento, migraciones, respaldo, scrypt, permisos y geometría de redimensionamiento.
+- `npm run test:ui:v2`: regresión de formularios, autocompletado, editor y exportaciones.
+- `npm run test:ui:v3`: logos, animación, sesión, Pro, IPC denegado y mouse con zoom/rotación.
+- `npm run test:packaged`: ejecutable Windows, Sharp nativo y exportación.
+- `node test/installer.cjs`: en el usuario aislado de CI, instaladores reales 2.0.0 → 3.0.0, reinstalación y desinstalación con conservación de datos.
+
+El workflow Windows publica 3.0.0 solamente después de todas estas pruebas. Conserva Releases existentes y publica el instalador junto a `SHA256SUMS.txt`. La impresión física requiere comprobación manual.

@@ -5,6 +5,7 @@ const { pathToFileURL } = require('node:url');
 const { randomUUID } = require('node:crypto');
 const { Store, validate, imageName } = require('./store.cjs');
 const { printHTML } = require('./document.cjs');
+const {Access}=require('./access.cjs');
 const {Scanner}=require('./scanner.cjs');
 const {importAsset}=require('./assets.cjs');
 const {sceneOutput}=require('./output.cjs');
@@ -16,6 +17,7 @@ let thumbnailQueue=Promise.resolve();
 protocol.registerSchemesAsPrivileged(['sath-image','sath-scan'].map(scheme=>({scheme,privileges:{standard:true,secure:true,supportFetchAPI:true}})));
 // Development can place all runtime files in a writable workspace.
 if (process.env.SATH_DATA_DIR && !app.isPackaged) app.setPath('userData', path.join(path.resolve(process.env.SATH_DATA_DIR), 'perfil'));
+let access;
 let mainWindow, store, state, scanner, recovered = false, migrated = false;
 let writeQueue = Promise.resolve();
 const exclusive = task => {
@@ -24,17 +26,19 @@ const exclusive = task => {
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
-  app.whenReady().then(start).catch(error => { dialog.showErrorBox('No se pudo iniciar SATH', error.message); app.quit(); });
+  app.whenReady().then(start).catch(error => { console.error(error); dialog.showErrorBox('No se pudo iniciar SATH', error.message); app.quit(); });
 }
 async function start() {
   const root = app.isPackaged ? path.join(path.dirname(process.execPath), 'datos') : process.env.SATH_DATA_DIR ? path.resolve(process.env.SATH_DATA_DIR) : path.join(app.getPath('userData'), 'datos');
   store = new Store(root, path.join(__dirname, '..', 'assets'));
   ({state, recovered, migrated} = await store.initialize());
+  await store.backupForUpgrade('3.0.0');
+  access=new Access(root);await access.initialize();
   scanner = new Scanner();
   await scanner.setFolder(state.settings.scanFolder,{wait:false});
   protocol.handle('sath-scan',async request=>{
     try{
-      const url=new URL(request.url);if(url.hostname!=='local')return new Response('No permitido',{status:403});
+      access.requireTools();const url=new URL(request.url);if(url.hostname!=='local')return new Response('No permitido',{status:403});
       const token=url.pathname.slice(1),file=await scanner.resolve(token);
       if(url.searchParams.get('thumb')==='1'){
         if(!scanThumbnails.has(token)){
@@ -51,7 +55,8 @@ async function start() {
     if (url.hostname !== 'local' || !imageName.test(name)) return new Response('No permitido',{status:403});
     return net.fetch(pathToFileURL(path.join(store.images,name)).href);
   });
-  mainWindow = new BrowserWindow({ width:1460, height:950, minWidth:1050, minHeight:700, title:'SATH Escritorio', icon:path.join(__dirname,'..','assets','icon.png'), backgroundColor:'#f4f6fa', show:false, webPreferences:{ preload:path.join(__dirname,'preload.cjs'), contextIsolation:true, nodeIntegration:false, sandbox:true, spellcheck:false } });
+  mainWindow = new BrowserWindow({ width:1460, height:950, minWidth:1050, minHeight:700, title:'Andrenelly · Formularios SATH', icon:path.join(__dirname,'..','assets','icon.png'), backgroundColor:'#f4f6fa', show:false, webPreferences:{ preload:path.join(__dirname,'preload.cjs'), contextIsolation:true, nodeIntegration:false, sandbox:true, spellcheck:false } });
+  mainWindow.webContents.on('render-process-gone',()=>access.logout());
   mainWindow.removeMenu();
   mainWindow.webContents.setWindowOpenHandler(() => ({action:'deny'}));
   mainWindow.webContents.on('will-navigate', event => event.preventDefault());
@@ -65,30 +70,35 @@ async function start() {
       catch (error) { return {ok:false, error:error.code==='EEXIST'?'El archivo ya existe. Elige otro nombre para conservar el original.':error.message}; }
     });
   }
-  handle('load', () => ({state, recovered, migrated, dataPath:store.root, version:app.getVersion()}));
+  handle('load', () => ({state, recovered, migrated, dataPath:store.root, version:app.getVersion(),access:access.status()}));
+  handle('access-login', password=>exclusive(()=>access.login(password)));
+  handle('access-logout', ()=>exclusive(()=>access.logout()));
+  handle('access-password', password=>exclusive(()=>access.changePassword(password)));
+  handle('access-pro', enabled=>exclusive(()=>access.setPro(enabled)));
   handle('save', incoming => exclusive(async () => {
-    validate(incoming); if(incoming.version!==2)throw new Error('La aplicación requiere datos en formato v2.'); if(incoming.settings.scanFolder!==scanner.folder)throw new Error('Cambia la carpeta desde Seleccionar carpeta.'); await store.save(incoming); state = incoming; return true;
+    validate(incoming); access.authorizeSave(state,incoming); if(incoming.version!==2)throw new Error('La aplicación requiere datos en formato v2.'); if(incoming.settings.scanFolder!==scanner.folder)throw new Error('Cambia la carpeta desde Seleccionar carpeta.'); await store.save(incoming); state = incoming; return true;
   }));
   async function pickAsset() {
     const selected=await dialog.showOpenDialog(mainWindow,{title:'Seleccionar imagen',filters:[{name:'Imágenes JPG, PNG o WEBP',extensions:['jpg','jpeg','png','webp']}],properties:['openFile']});
     if(selected.canceled)return null;return importAsset(selected.filePaths[0],store.images);
   }
   handle('import-image',async()=>{const asset=await pickAsset();return asset?.name||null;});
-  handle('asset-import',pickAsset);
+  handle('asset-import',()=>{access.requireTools();return pickAsset();});
   handle('scan-folder',()=>exclusive(async()=>{
+    access.requireTools();
     const selection=await dialog.showOpenDialog(mainWindow,{title:'Carpeta de escaneos',properties:['openDirectory']});if(selection.canceled)return null;
     const folder=await fs.realpath(selection.filePaths[0]);const previous=scanner.folder;
     try{await scanner.setFolder(folder,{wait:false});state.settings.scanFolder=folder;await store.save(state);}catch(error){state.settings.scanFolder=previous;await scanner.setFolder(previous,{wait:false});throw error;}return scanner.snapshot();
   }));
-  handle('scan-list',async all=>{if(typeof all!=='boolean')throw new Error('Opción no válida.');await scanner.refresh();return scanner.snapshot(all);});
-  handle('scan-import',async token=>{if(typeof token!=='string')throw new Error('Imagen no válida.');return importAsset(await scanner.resolve(token),store.images);});
-  scanner.on('change',snapshot=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('scan-change',snapshot);});
-  handle('scene-output',async options=>{
+  handle('scan-list',async all=>{access.requireTools();if(typeof all!=='boolean')throw new Error('Opción no válida.');await scanner.refresh();return scanner.snapshot(all);});
+  handle('scan-import',async token=>{access.requireTools();if(typeof token!=='string')throw new Error('Imagen no válida.');return importAsset(await scanner.resolve(token),store.images);});
+  scanner.on('change',snapshot=>{if((access.status().pro||access.status().developer)&&mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('scan-change',snapshot);});
+  handle('scene-output',async options=>{access.requireTools();
     if(!options||!['pdf','print','png','jpg'].includes(options.kind))throw new Error('Formato de exportación no válido.');
     const project=state.projects.find(p=>p.id===options.projectId);if(!project)throw new Error('Guarda el proyecto antes de exportar.');
     return sceneOutput({projects:[structuredClone(project)],kind:options.kind,dpi:options.dpi||150,owner:mainWindow,root:store.root,images:store.images});
   });
-  handle('batch-output',async options=>{
+  handle('batch-output',async options=>{access.requireTools();
     if(!options||!Array.isArray(options.tokens)||!options.tokens.length||options.tokens.length>100||!['pdf','print'].includes(options.kind)||typeof options.landscape!=='boolean')throw new Error('Selecciona de 1 a 100 imágenes.');
     const projects=[],temporary=await fs.mkdtemp(path.join(store.root,'lote-'));
     try {
@@ -102,6 +112,7 @@ async function start() {
     return store.backup(state,selection.filePaths[0]);
   }));
   handle('restore', () => exclusive(async () => {
+    access.requireTools();
     const selection = await dialog.showOpenDialog(mainWindow,{title:'Abrir documentos.json de un respaldo SATH',filters:[{name:'Respaldo SATH',extensions:['json']}],properties:['openFile']});
     if (selection.canceled) return null;
     const answer = await dialog.showMessageBox(mainWindow,{type:'warning',buttons:['Cancelar','Restaurar respaldo'],defaultId:0,cancelId:0,message:'Se reemplazarán las plantillas y los documentos actuales.',detail:'Primero se creará una copia completa de los datos actuales dentro de datos/respaldos. El respaldo seleccionado debe tener su carpeta imagenes al lado.'});

@@ -15,8 +15,8 @@ const {setTimeout:delay}=require('node:timers/promises');
  const fixture=path.join(out,'original.webp');await sharp({create:{width:60,height:80,channels:3,background:'#3a75e8'}}).webp().toFile(fixture);
  let app;
  try{
-  app=await electron.launch({executablePath:path.join(directory,'SATH Escritorio.exe'),args:[],env:{...process.env},timeout:45000});
-  const page=await app.firstWindow();page.setDefaultTimeout(20000);await page.locator('#document-title').waitFor();
+  app=await electron.launch({executablePath:path.join(directory,'SATH Escritorio.exe'),args:['--user-data-dir='+path.join(out,'perfil')],env:{...process.env},timeout:45000});
+  const page=await app.firstWindow();page.setDefaultTimeout(20000);await page.locator('#document-title').waitFor();await page.locator('#skip-welcome').click().catch(()=>{});await page.evaluate(()=>window.sath.login('user2'));await page.evaluate(()=>{accessState={developer:true,pro:false};refreshAccess();});
   const loaded=await page.evaluate(()=>window.sath.load());assert.equal(loaded.version,require('../package.json').version);assert.equal(loaded.state.version,2);assert.equal(loaded.migrated,true);assert.equal(loaded.state.documents[0].values.p_1,'CONSERVAR123');
   await app.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]});},fixture);
   const asset=await page.evaluate(()=>window.sath.importAsset());assert.ok(asset.name.endsWith('.webp'));assert.equal(asset.width,60);

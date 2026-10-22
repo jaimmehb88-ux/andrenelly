@@ -9,3 +9,7 @@ build-windows.log
 .test-packaged/
 .test-installed/
 .test-installers/
+
+.test-output-v3/
+pnpm-lock.yaml
+pnpm-workspace.yaml

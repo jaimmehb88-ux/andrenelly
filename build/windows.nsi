@@ -4,8 +4,8 @@
 !include "LogicLib.nsh"
 !include "x64.nsh"
 !include "FileFunc.nsh"
-!define APP_EXECUTABLE_FILENAME "${PRODUCT_NAME}.exe"
-!define UNINSTALL_FILENAME "Desinstalar ${PRODUCT_NAME}.exe"
+!define APP_EXECUTABLE_FILENAME "SATH Escritorio.exe"
+!define UNINSTALL_FILENAME "Desinstalar SATH Escritorio.exe"
 !define SATH_REG "Software\Andrenelly\SATH"
 !define SATH_UNINSTALL "Software\Microsoft\Windows\CurrentVersion\Uninstall\SATH-Escritorio"
 
@@ -20,7 +20,7 @@ SetDatablockOptimize on
 ShowInstDetails show
 ShowUninstDetails show
 !define MUI_ABORTWARNING
-!define MUI_WELCOMEPAGE_TITLE "Bienvenido a SATH Escritorio"
+!define MUI_WELCOMEPAGE_TITLE "Bienvenido a Andrenelly · Formularios SATH"
 !define MUI_WELCOMEPAGE_TEXT "Instala tus formularios y plantillas A4 en este equipo.$\r$\n$\r$\nLos documentos e imágenes se guardarán en la carpeta datos, junto al programa. Selecciona una carpeta que tu usuario pueda modificar.$\r$\n$\r$\nCierra SATH antes de continuar."
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE CheckDirectory
@@ -41,6 +41,11 @@ Function .onInit
     Abort
   ${EndIf}
   SetRegView 64
+  FindWindow $0 "" "SATH Escritorio"
+  ${If} $0 != 0
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Cierra SATH Escritorio antes de continuar."
+    Abort
+  ${EndIf}
   FindWindow $0 "" "${PRODUCT_NAME}"
   ${If} $0 != 0
     MessageBox MB_OK|MB_ICONEXCLAMATION "Cierra SATH Escritorio antes de instalar o actualizar."
@@ -94,6 +99,11 @@ SectionEnd
 Function un.onInit
   SetShellVarContext current
   SetRegView 64
+  FindWindow $0 "" "SATH Escritorio"
+  ${If} $0 != 0
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Cierra SATH Escritorio antes de continuar."
+    Abort
+  ${EndIf}
   FindWindow $0 "" "${PRODUCT_NAME}"
   ${If} $0 != 0
     MessageBox MB_OK|MB_ICONEXCLAMATION "Cierra SATH Escritorio antes de desinstalar."

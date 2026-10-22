@@ -21,6 +21,7 @@ jobs:
       - run: npx install-electron
       - run: npm test
       - run: npm run test:ui:v2
+      - run: npm run test:ui:v3
       - name: Compilar instalador
         shell: pwsh
         env:
@@ -35,24 +36,44 @@ jobs:
             exit $buildExit
           }
       - run: npm run test:packaged
+      - name: Probar actualización real desde 2.0.0 antes de publicar
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force .test-installers | Out-Null
+          gh release download v2.0.0 --repo $env:GITHUB_REPOSITORY --pattern SATH-Escritorio-2.0.0-Instalador.exe --dir .test-installers
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/v2.0.0" | ConvertFrom-Json
+          $asset = $release.assets | Where-Object name -eq 'SATH-Escritorio-2.0.0-Instalador.exe'
+          $hash = (Get-FileHash .test-installers/SATH-Escritorio-2.0.0-Instalador.exe -Algorithm SHA256).Hash.ToLower()
+          if ($asset.digest -ne "sha256:$hash") { throw 'Integridad incorrecta del instalador 2.0.0' }
+          Copy-Item dist/*Instalador.exe .test-installers/
+          node test/installer.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:
           name: SATH-Escritorio-Instalador-Windows
           path: dist/*Instalador.exe
           if-no-files-found: error
       - name: Publicar instalador descargable
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          SATH_RELEASE_TAG: ${{ github.ref_name }}
+          SATH_COMMIT: ${{ github.sha }}
         run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          if ($version -ne '3.0.0') { throw 'Publicación reservada para 3.0.0' }
+          $tag = "v$version"
           $installer = (Get-ChildItem dist/*Instalador.exe).FullName
-          gh release view $env:SATH_RELEASE_TAG --json tagName 2>$null
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
+          "$hash  $(Split-Path $installer -Leaf)" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          gh release view $tag --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $env:SATH_RELEASE_TAG $installer --clobber
-          } else {
-            gh release create $env:SATH_RELEASE_TAG $installer --verify-tag --title "SATH Escritorio $env:SATH_RELEASE_TAG" --notes-file build/release-notes.md
+            Write-Output 'La versión ya está publicada. Se conserva sin reemplazar sus archivos.'
+            exit 0
           }
+          gh release create $tag $installer dist/SHA256SUMS.txt --target $env:SATH_COMMIT --title "Andrenelly · Formularios SATH $version" --notes-file build/release-notes.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -83,5 +83,27 @@
     check(projects.every(p=>(p.page.width>p.page.height)===wide),'Las páginas del lote deben tener la misma orientación.');
     return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file:; style-src 'unsafe-inline'"><style>@page{size:A4 ${wide?'landscape':'portrait'};margin:0}body{margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{width:${wide?297:210}mm;height:${wide?210:297}mm;break-after:page;overflow:hidden;background:white}.page:last-child{break-after:auto}.page>svg{width:100%;height:100%}</style></head><body>${projects.map(p=>`<div class="page">${renderSVG(p,imageURL)}</div>`).join('')}</body></html>`;
   }
-  return { A4, escape, validateProject, imageLayer, textLayer, templateLayers, renderSVG, pagesHTML, fieldValue };
+  // Deltas use page coordinates; rotate back to the image axes. The opposite
+  // corner/edge stays fixed even though CSS rotates around the changing center.
+  function resizeLayer(start, direction, dx, dy, keepRatio=true) {
+    const sx=direction.includes('e')?1:direction.includes('w')?-1:0;
+    const sy=direction.includes('s')?1:direction.includes('n')?-1:0;
+    const angle=start.rotation*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle);
+    const localX=c*dx+s*dy,localY=-s*dx+c*dy;
+    let width=start.width,height=start.height;
+    if(sx&&sy&&keepRatio) {
+      let factor=1+(sx*localX*width+sy*localY*height)/(width*width+height*height);
+      factor=Math.max(1/Math.min(width,height),Math.min(6000/Math.max(width,height),factor));
+      width*=factor;height*=factor;
+    } else {
+      if(sx)width=Math.max(1,Math.min(6000,width+sx*localX));
+      if(sy)height=Math.max(1,Math.min(6000,height+sy*localY));
+    }
+    const shiftX=sx*(width-start.width)/2,shiftY=sy*(height-start.height)/2;
+    const x=start.x+start.width/2+c*shiftX-s*shiftY-width/2;
+    const y=start.y+start.height/2+s*shiftX+c*shiftY-height/2;
+    if(Math.abs(x)>6000||Math.abs(y)>6000)return {x:start.x,y:start.y,width:start.width,height:start.height};
+    return {x,y,width,height};
+  }
+  return { A4, escape, validateProject, imageLayer, textLayer, templateLayers, renderSVG, pagesHTML, fieldValue, resizeLayer };
 });

@@ -26,6 +26,8 @@ async function flush() {
 }
 async function action(task) { try { await task(); } catch (error) { toast(error.message,true); } }
 function showView(next) {
+  if(next==='scans'&&!toolsAllowed())return;
+  if(next==='scans'&&!toolsAllowed())return;
   view = next;
   for (const name of ['documents','templates','scans','settings']) $(name + '-view').hidden = name !== next;
   document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active',b.dataset.view === next));
@@ -210,7 +212,7 @@ async function output(kind) {
 }
 async function init() {
   if (!api) { saveStatus('Abre esta aplicación desde SATH Escritorio.','error'); return; }
-  const loaded = await api.load(); state = loaded.state; dataPath = loaded.dataPath;
+  const loaded = await api.load(); state = loaded.state; dataPath = loaded.dataPath; accessState=loaded.access; accessState=loaded.access;
   $('data-path').textContent = dataPath; $('app-version').textContent = 'Versión ' + loaded.version;
   activeDocumentId = [...state.documents].sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0]?.id;
   if (loaded.recovered) toast('Se recuperó la última copia automática. Revisa tus documentos y crea un respaldo.',true);
@@ -230,11 +232,11 @@ async function init() {
   $('delete-document').onclick = () => action(async () => {const d=currentDocument();if (!await confirmDelete('¿Eliminar este documento?',d.title + ' se eliminará de este equipo. Esta acción no modifica la plantilla.'))return;state.documents=state.documents.filter(x=>x.id!==d.id);activeDocumentId=state.documents[0]?.id;changed();renderDocuments();});
   $('with-background').onchange = updateDocumentPaper; $('zoom').onchange=resizePapers;
   $('pdf-document').onclick=()=>action(()=>output('pdf'));$('print-document').onclick=()=>action(()=>output('print'));$('png-document').onclick=()=>action(()=>output('png'));$('jpg-document').onclick=()=>action(()=>output('jpg'));
-  $('new-template').onclick=()=>{if(state.templates.length>=100){toast('Límite de 100 plantillas alcanzado.',true);return;}const t={id:uid(),name:'Nueva plantilla',image:null,fields:[]};state.templates.push(t);activeTemplateId=t.id;activeFieldId=null;changed();renderTemplates();};
+  $('new-template').onclick=()=>{if(!toolsAllowed())return;if(!toolsAllowed())return;if(state.templates.length>=100){toast('Límite de 100 plantillas alcanzado.',true);return;}const t={id:uid(),name:'Nueva plantilla',image:null,fields:[]};state.templates.push(t);activeTemplateId=t.id;activeFieldId=null;changed();renderTemplates();};
   $('template-name').onchange=e=>{const name=e.target.value.trim();if(!name){e.target.value=currentTemplate().name;return;}currentTemplate().name=name;changed();renderTemplates();};
   $('close-template').onclick=()=>{activeTemplateId=null;$('template-editor').hidden=true;};
   $('import-image').onclick=()=>action(async()=>{const t=currentTemplate();const name=await api.importImage();if(name){t.image=name;changed();renderTemplates();toast('Imagen guardada en la carpeta del programa.');}});
-  $('duplicate-template').onclick=()=>{if(state.templates.length>=100){toast('Límite de 100 plantillas alcanzado.',true);return;}const t=structuredClone(currentTemplate());t.id=uid();t.name=t.name.slice(0,150)+' (copia)';state.templates.push(t);activeTemplateId=t.id;changed();renderTemplates();};
+  $('duplicate-template').onclick=()=>{if(!toolsAllowed())return;if(!toolsAllowed())return;if(state.templates.length>=100){toast('Límite de 100 plantillas alcanzado.',true);return;}const t=structuredClone(currentTemplate());t.id=uid();t.name=t.name.slice(0,150)+' (copia)';state.templates.push(t);activeTemplateId=t.id;changed();renderTemplates();};
   $('delete-template').onclick=()=>action(async()=>{const t=currentTemplate();if(state.templates.length===1){toast('Conserva al menos una plantilla.',true);return;}if(state.documents.some(d=>d.templateId===t.id)){toast('Esta plantilla tiene documentos. Elimínalos primero o conserva la plantilla.',true);return;}if(!await confirmDelete('¿Eliminar esta plantilla?',t.name+' se quitará de la biblioteca.'))return;state.templates=state.templates.filter(x=>x.id!==t.id);activeTemplateId=null;changed();renderTemplates();$('template-editor').hidden=true;});
   $('add-field').onclick=()=>{const t=currentTemplate();if(t.fields.length>=200){toast('Máximo 200 campos por plantilla.',true);return;}const f={id:uid(),label:'Nuevo campo',left:15,top:25,width:35,height:3,fontFamily:'Arial, sans-serif',fontSize:14,fontWeight:'400',textAlign:'left',textTransform:'uppercase',letterSpacing:0,color:'#000000',special:'normal'};t.fields.push(f);activeFieldId=f.id;changed();renderTemplateEditor();};
   $('open-folder').onclick=()=>action(async()=>{const error=await api.openFolder();if(error)throw new Error(error);});
@@ -243,7 +245,7 @@ async function init() {
   api.onClose(()=>action(async()=>{if(closing)return;closing=true;try{await flush();await api.close();}finally{closing=false;}}));
   window.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();action(async()=>{await flush();toast('Cambios guardados.');});}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='n'){event.preventDefault();if(!$('new-dialog').open)openNewDocument();}});
   new ResizeObserver(resizePapers).observe($('app-shell')||document.querySelector('.app-shell'));
-  initAutocomplete(); initScans();
+  initAutocomplete(); initScans(); initAccessUI(); initAccessUI();
   if(loaded.migrated)toast('Datos actualizados a la versión 2. Se creó un respaldo completo de la versión anterior.');
   renderDocuments(); refreshCounts();
 }
