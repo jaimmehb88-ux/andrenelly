@@ -1,0 +1,50 @@
+name: Probar instaladores publicados
+on:
+  workflow_dispatch:
+  push:
+    branches: ['main']
+    paths: ['test/installer.cjs', '.github/workflows/installer-qa.yml']
+permissions:
+  contents: read
+jobs:
+  installation:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Descargar y verificar instaladores publicados
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $targetVersion = (Get-Content package.json | ConvertFrom-Json).version
+          New-Item -ItemType Directory -Force .test-installers | Out-Null
+          foreach ($version in @('1.0.1', $targetVersion)) {
+            $tag = "v$version"
+            $name = "SATH-Escritorio-$version-Instalador.exe"
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 60; $attempt++) {
+              gh release download $tag --repo $env:GITHUB_REPOSITORY --pattern $name --dir .test-installers --clobber
+              if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+              Start-Sleep -Seconds 5
+            }
+            if (-not $ready) { throw "El instalador $tag todavía no está disponible." }
+            $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "No se pudo consultar la integridad de $tag." }
+            $asset = $release.assets | Where-Object { $_.name -eq $name }
+            if ($asset.digest -notmatch '^sha256:[a-fA-F0-9]{64}$') { throw "GitHub no devolvió el SHA-256 verificable de $name." }
+            $actual = (Get-FileHash ".test-installers/$name" -Algorithm SHA256).Hash.ToLower()
+            if ("sha256:$actual" -ne $asset.digest.ToLower()) { throw "SHA-256 incorrecto para $name." }
+            Write-Output "Instalador $tag descargado y verificado."
+          }
+      - run: node test/installer.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Resultado-instalacion-actualizacion-Windows
+          path: .test-installed/resultado.json
+          if-no-files-found: error

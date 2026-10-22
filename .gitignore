@@ -7,3 +7,5 @@ dist/
 .test-output-v2/
 build-windows.log
 .test-packaged/
+.test-installed/
+.test-installers/
