@@ -1,44 +1,85 @@
-# SATH Escritorio
+# SATH Escritorio 2.0
 
-Aplicación local para Windows 10/11 de 64 bits. Completa formularios SATH sobre plantillas A4 y guarda documentos, imágenes y respaldos en el equipo. Funciona sin Internet después de instalarla.
+Aplicación local para Windows 10/11 de 64 bits: formularios SATH, autocompletado configurable y **Escaneos Pro**. No necesita Internet después de instalarla. Los documentos, ajustes e imágenes se guardan en el equipo, sin imágenes Base64 ni servicios externos.
 
-## Uso
+## Descargar y actualizar
 
-1. Pulsa **Nuevo documento**, elige la plantilla y asigna un nombre.
-2. Completa los datos. La vista previa se actualiza y los cambios se guardan automáticamente.
-3. Usa **Guardar PDF** o **Imprimir**. Desactiva **Incluir plantilla de fondo** al imprimir sobre papel preimpreso. En la impresora selecciona A4 y escala real/100 %; el ajuste físico depende de los márgenes de cada impresora.
-4. En **Plantillas A4**, añade o duplica plantillas, importa imágenes JPG/PNG y ajusta campos arrastrándolos o introduciendo medidas. Con un campo enfocado, las flechas lo mueven 0,1 % y Mayús + flechas 1 %.
-5. En **Datos y respaldos**, crea una copia completa en otra unidad. Para restaurar, selecciona `documentos.json` del respaldo, con su carpeta `imagenes` al lado. La restauración crea primero un respaldo de los datos actuales.
+En [GitHub Releases](https://github.com/jaimmehb88-ux/andrenelly/releases) descarga `SATH-Escritorio-2.0.0-Instalador.exe`. Cierra SATH antes de instalar y conserva la misma carpeta de la versión anterior. La ubicación por usuario propuesta permite guardar datos sin permisos de administrador; evita `Program Files` u otras carpetas protegidas.
 
-Atajos: **Ctrl+N**, nuevo documento; **Ctrl+S**, guardar ahora. El cierre normal espera a que termine el guardado. Si falla, la ventana permanece abierta para reintentar con Ctrl+S.
+La aplicación conserva su identidad y la carpeta `datos`. En el primer inicio con datos v1, crea un respaldo completo en `datos/respaldos/migraciones` **antes** de actualizar el formato. Si ese respaldo falla, no migra ni sobrescribe el archivo anterior. Los documentos y las plantillas existentes se conservan. Las versiones anteriores siguen disponibles en Releases.
 
-La edición de una plantilla afecta a todos sus documentos. Duplica la plantilla antes de preparar un formato diferente. Las imágenes deben ser JPG o PNG, hasta 30 MB y 50 megapíxeles. Límites de esta versión: 100 plantillas, 200 campos por plantilla y 2000 documentos.
+El instalador no tiene firma digital de editor. Las pruebas automatizadas de Windows comprueban la aplicación y el ejecutable empaquetado; la instalación, actualización, desinstalación y la impresión física deben verificarse también en un equipo Windows con impresora real. Antes de actualizar, conserva un respaldo externo.
 
-## Instalar en Windows
+## Datos del formulario
 
-Ejecuta `SATH-Escritorio-1.0.1-Instalador.exe` y conserva preferiblemente la ubicación por usuario propuesta. El instalador permite elegir otra carpeta que tu usuario pueda modificar; evita carpetas protegidas como `Program Files`. No requiere privilegios de administrador. Incluye accesos directos y desinstalador.
+Crea un documento, elige una plantilla y completa sus campos. El guardado es automático y la vista previa A4 se actualiza mientras escribes. Los campos vinculados siguen copiando sus valores automáticamente. Los datos se organizan en trámite, persona y fecha del documento.
 
-Los datos quedan junto a `SATH Escritorio.exe`:
+- **Autocompletado**: activa/desactiva las sugerencias globalmente y por campo. En la configuración puedes crear, editar y eliminar sugerencias manuales, una por línea. También puedes guardar explícitamente el valor de un campo como sugerencia desde su botón.
+- **Historial**: viene desactivado. Solo si habilitas la opción se consultan documentos anteriores para sugerir valores o buscar por DNI. No se crea una agenda oculta de personas: desactivar la opción deja de consultar el historial.
+- **Buscar por DNI**: escribe ocho dígitos, habilita el historial y revisa el documento de origen y los valores propuestos. Puedes cancelar sin cambiar nada. Solo se recuperan nombre, DNI, dirección y contacto; no se reemplazan fechas ni datos del trámite.
+- **Teclado**: Tab avanza, Mayús + Tab retrocede. Las sugerencias usan el selector del sistema. Enter avanza en campos sin sugerencias. Los mensajes indican cómo corregir DNI y correo.
+- **Salida**: PDF, PNG y JPG o impresión con/sin fondo. **Editar en Escaneos Pro** crea un proyecto independiente a partir del documento para añadir imágenes o textos sin modificar el original.
+
+Atajos generales: Ctrl+N para un documento nuevo y Ctrl+S para guardar ahora. El cierre normal espera al guardado. Si no se puede guardar, la ventana permanece abierta y permite reintentar.
+
+## Escaneos Pro: carpeta vigilada
+
+1. Pulsa **Seleccionar carpeta** y elige dónde se guardan tus escaneos. La aplicación recuerda la ruta al reiniciar.
+2. La galería muestra las **seis imágenes más recientes por fecha de modificación**, de mayor a menor, con nombre y fecha. Se actualiza automáticamente al agregar, modificar o borrar archivos. También existe **Actualizar**.
+3. **Ver toda la carpeta** permite buscar por nombre, seleccionar imágenes de cualquier fecha o abrirlas en el editor.
+4. Se admiten JPG, JPEG, PNG y WEBP estáticos, hasta 30 MB y 50 megapíxeles por imagen. Las subcarpetas y los enlaces simbólicos no se recorren. Se informa de formatos omitidos y archivos dañados.
+5. Los archivos nuevos se muestran cuando su tamaño y fecha se estabilizan y se pueden decodificar completos. Si la carpeta se desconecta, la aplicación sigue funcionando y vuelve a comprobarla. Cambiar de carpeta descarta resultados tardíos de la ruta anterior.
+
+La galería consulta la carpeta original, pero al editar una imagen se guarda una copia independiente en `datos/imagenes`. Los originales no se editan, renombran ni eliminan.
+
+## Editor por capas
+
+Abre una imagen de la galería o crea un proyecto. Puedes seleccionar un proyecto guardado para continuar más tarde. El proyecto y sus ajustes se conservan al cerrar el programa.
+
+- **Página**: A4 vertical u horizontal, zoom de ajuste/50–200 % y herramienta de desplazamiento. Cambiar la orientación conserva las posiciones; revisa las capas y ajusta su ubicación si es necesario.
+- **Posición y tamaño**: selecciona una capa en la lista o sobre la hoja. Arrástrala o escribe sus coordenadas y medidas en píxeles de la composición A4 (794 × 1123 en vertical). Las flechas mueven 1 px y Mayús + flechas 10 px.
+- **Imagen**: rotación ±90° o enderezado con décimas de grado; brillo, contraste, escala de grises y opacidad. **Recortar imagen** permite arrastrar el área que quieres conservar sobre el original. El recorte es reversible. **Restablecer ajustes** recupera color, opacidad, rotación y recorte completo.
+- **Texto**: contenido multilínea, fuente, tamaño, color, grosor, alineación y espaciado. Se puede mover, cambiar de tamaño y rotar como las imágenes.
+- **Capas**: insertar más imágenes, seleccionar, subir/bajar, ocultar, bloquear/desbloquear y eliminar con confirmación. La primera capa de la lista está encima. El bloqueo impide cambiar medidas o posición, pero permite decidir si se incluye en la salida.
+- **Deshacer/Rehacer**: botones y Ctrl+Z / Ctrl+Mayús+Z o Ctrl+Y, fuera de los campos de texto. Se conservan hasta 50 operaciones recientes del proyecto activo, limitadas por memoria. El historial de deshacer se reinicia al cambiar de proyecto o reiniciar la aplicación; la edición actual sí se guarda.
+
+**Cargar plantilla o documento** crea un proyecto independiente con el fondo y cada campo como capas. Los valores de un documento se copian tal como están al cargarlo; los cambios posteriores en el documento no alteran automáticamente este proyecto. Puedes editar el contenido de sus campos como texto y superponer nuevas imágenes.
+
+## Impresión y exportación
+
+**Lo que está visible en el editor es lo que se exporta e imprime.** Usa las casillas del fondo, de los campos y de cada capa para incluir o excluir elementos. Para papel preimpreso, oculta el fondo y conserva los campos e imágenes necesarios.
+
+- **PDF**: una página A4 para el proyecto. Los textos se conservan como texto vectorial.
+- **PNG/JPG**: página A4 con fondo blanco, a 96, 150 o 300 ppp. En vertical son 794 × 1123, 1240 × 1754 o 2480 × 3508 píxeles. La composición es la misma que en la vista previa; se captura a resolución nativa por partes para evitar límites de tamaño de las pantallas.
+- **Imprimir**: diálogo del sistema. Selecciona A4 y escala real/100 % para alinear sobre formularios físicos. Los márgenes reales dependen de la impresora.
+- **Lotes**: selecciona hasta 100 imágenes de la galería/explorador, pulsa **PDF / imprimir selección**, ajusta el orden y la orientación. Cada original se ajusta proporcionalmente a una página A4. Para exportar ediciones, abre su proyecto y usa la salida del editor; el lote de la galería utiliza los originales seleccionados.
+
+Las exportaciones solicitan una ubicación y **no sobrescriben archivos existentes**, incluso si el diálogo del sistema permite escoger uno. Elige un nombre nuevo. De este modo se protegen originales y exportaciones anteriores. Los archivos PDF/PNG/JPG son salidas finales; los proyectos editables están en el archivo de datos y los respaldos.
+
+## Datos y respaldos
 
 ```text
 SATH Escritorio/
   SATH Escritorio.exe
   datos/
-    documentos.json
-    documentos.json.bak
-    imagenes/
-    respaldos/           # copias previas a una restauración
+    documentos.json       # documentos, plantillas, proyectos y preferencias v2
+    documentos.json.bak   # versión anterior del archivo
+    imagenes/             # JPG, PNG y WEBP como archivos normales
+    respaldos/
+      migraciones/        # copia completa previa a migrar v1
 ```
 
-Las imágenes del HTML original se extrajeron como archivos JPG, manteniendo su calidad y las coordenadas de los campos. No se utiliza Base64 ni localStorage para guardar imágenes o documentos. Las nuevas imágenes reciben nombres internos únicos. Se eliminaron las funciones de generar código fuente, descargar el sistema como HTML y generar códigos de imagen, así como las contraseñas incrustadas del prototipo. El acceso a los archivos depende de la cuenta de Windows; esta versión no incorpora usuarios, cifrado ni sincronización.
+**Crear respaldo completo** incluye documentos, plantillas, sugerencias, preferencias, proyectos y todas las imágenes referenciadas por sus capas, incluso ocultas. Para restaurar, selecciona `documentos.json` del respaldo con su carpeta `imagenes` al lado. La restauración crea primero un respaldo completo de los datos actuales, valida las imágenes y utiliza nombres nuevos para no sustituir las existentes. Admite respaldos v1 y v2.
 
-El instalador actualiza los archivos del programa sin incluir ni reemplazar `datos`; el desinstalador también conserva esa carpeta. Conserva un respaldo externo antes de actualizar o desinstalar. Al reinstalar, elige la misma carpeta para recuperar los datos conservados. Los respaldos incluyen información personal y no están cifrados.
+La configuración recuerda la ruta de escaneos, pero el respaldo **no copia toda esa carpeta externa**: solo las imágenes importadas por documentos/proyectos. La galería se vuelve a leer desde la ruta configurada. En otro equipo puedes elegir una nueva carpeta si la original no está disponible.
 
-El instalador se genera sin firma digital de editor. La instalación, desinstalación, actualización y la impresión física necesitan una comprobación final en un equipo Windows real. Esta aplicación utiliza las plantillas aportadas; no comprueba la vigencia legal de sus formularios.
+El instalador y el desinstalador conservan `datos`. No muevas ni borres esa carpeta durante el uso. Guarda copias externas: la copia automática protege frente a un archivo dañado, pero no frente a pérdida del equipo. Los respaldos contienen datos personales y no están cifrados. El control de acceso depende de la cuenta de Windows; no hay usuarios internos ni sincronización.
 
-## Desarrollo
+Límites: 2000 documentos, 100 plantillas, 200 campos por plantilla, 500 proyectos, 250 capas por proyecto, 100 sugerencias por campo y 40 MB de datos JSON y 150 megapíxeles de imágenes visibles por proyecto (sin contar repetidas). Los archivos de imagen se guardan aparte. La carpeta vigilada admite hasta 10 000 elementos.
 
-Requiere Node.js 24 y npm. No necesita servidor, base de datos externa ni claves de acceso. Usa el checkout existente; cada tarea de nube ya está aislada y no necesita otro worktree.
+## Desarrollo y comprobaciones
+
+Requiere Node.js 24 y npm. Usa el checkout existente; las tareas de nube ya están aisladas y no requieren otro worktree.
 
 ```sh
 npm ci
@@ -47,20 +88,14 @@ npm test
 npm start
 ```
 
-Electron 45 descarga su runtime mediante `install-electron`; `npm ci` por sí solo no lo instala. Las versiones exactas y las integridades de los paquetes están en `package-lock.json`.
+Electron 45 instala su runtime mediante `install-electron`. Sharp 0.35.5 se usa para decodificar imágenes completas, comprobar límites y ensamblar exportaciones; sus binarios nativos se incluyen en el paquete de Windows. Versiones e integridades están fijadas en `package-lock.json`.
 
-En Windows, para compilar:
+- `npm test`: almacenamiento, migración v1 con respaldo y fallos seguros, sugerencias/historial/DNI, composición A4, capas, respaldo/restauración con WEBP, vigilancia, orden, archivos incompletos y cambios de carpeta durante lecturas pendientes.
+- `npm run test:ui`: regresión de documentos, plantillas, PDF y datos de la versión anterior usando Electron real.
+- `npm run test:ui:v2`: recorrido funcional completo de migración, autocompletado, confirmación por DNI, galería, edición, recorte, filtros, capas, PNG/JPG/PDF, 300 ppp, protección de originales, lotes, respaldo/restauración y reinicio. Genera capturas y archivos en `.test-output-v2/`, sin utilizar datos personales del desarrollo.
+- `npm run test:packaged`: después de compilar en Windows, abre el ejecutable empaquetado y comprueba migración, conservación de datos, carga del módulo nativo, WEBP y exportación PNG. Usa una carpeta `datos` nueva en `dist/win-unpacked`, y la elimina al terminar; se niega a sobrescribir una carpeta de datos existente.
 
-```powershell
-npm ci
-npx install-electron
-npm test
-npm run dist:win
-```
-
-Resultado: `dist/SATH-Escritorio-1.0.1-Instalador.exe`. El workflow **Compilar instalador de Windows** permite ejecutar la compilación manualmente desde GitHub Actions o al subir una etiqueta `v*`, y guarda el instalador como artefacto. Al subir una etiqueta `v*`, también publica el instalador en GitHub Releases con un enlace de descarga. Las ejecuciones manuales guardan el artefacto sin publicar una versión.
-
-Para ejecutar desde Linux en este entorno de nube:
+Para desarrollar en este contenedor Linux:
 
 ```sh
 export SATH_DATA_DIR="$PWD/.runtime/datos"
@@ -75,24 +110,18 @@ export DISPLAY=:99
 npm start -- --no-sandbox
 ```
 
-Este contenedor Linux no permite el sandbox interno de Chromium (ni el auxiliar setuid ni los espacios de nombres de usuario), por lo que la ejecución de desarrollo en la nube usa `--no-sandbox` dentro del aislamiento externo. La automatización de Electron también lo usa. Este argumento no se incluye en el código ni en el instalador Windows; allí se utiliza `npm start` o el ejecutable normalmente.
+El contenedor no permite el sandbox interno de Chromium; la excepción `--no-sandbox` se limita al desarrollo dentro del aislamiento externo y a la automatización. No se incorpora al código ni al instalador de Windows. En desarrollo `SATH_DATA_DIR` cambia la carpeta de datos; el ejecutable instalado siempre usa `datos` junto al programa. Los procesos gráficos deben reiniciarse en cada tarea nueva. No hay servidor web ni vistas localhost.
 
-En desarrollo `SATH_DATA_DIR` cambia la carpeta de datos; en el programa empaquetado siempre se usa `datos` junto al ejecutable. Los procesos gráficos deben arrancar de nuevo en una tarea nueva. No se exponen vistas web ni servicios de red.
+Para compilar el instalador:
 
-## Comprobaciones
+```sh
+npm run dist:win
+```
 
-- `npm test`: almacenamiento real, validación de rutas y límites, recuperación de archivo dañado, respaldo/restauración con imágenes y composición de impresión.
-- `npm run test:ui`: prueba de integración con Electron real y pantalla gráfica disponible. Ejercita documentos, campos vinculados, imágenes locales, PDF, duplicación, borrado, arrastre, respaldo, restauración y persistencia después de cerrar y reiniciar. En Linux: `DISPLAY=:99 npm run test:ui` después de iniciar la pantalla. Genera PDF y capturas en `.test-output/`; no escribe documentos de prueba en los datos de uso normal.
-- El script NSIS personalizado genera instalador y desinstalador directamente, sin ejecutar binarios Windows en Linux. La ruta automatizada de compilación es Windows. No desactives las verificaciones TLS ni las comprobaciones de integridad de las descargas.
+El script NSIS genera instalador y desinstalador sin ejecutar binarios Windows en Linux. El workflow de GitHub Actions ejecuta las comprobaciones en Windows, compila y comprueba el ejecutable empaquetado. En etiquetas `v*` publica el instalador en Releases; en `main` y ejecuciones manuales guarda un artefacto. La compilación desactiva la publicación implícita de electron-builder y utiliza exclusivamente la publicación explícita del workflow.
 
 ## Estructura
 
-- `src/main.cjs`: ventana, diálogos, IPC restringido, imágenes y PDF/impresión.
-- `src/preload.cjs`: interfaz mínima entre la ventana y el proceso principal.
-- `src/store.cjs`: datos en JSON, escrituras atómicas, copia automática y respaldos.
-- `src/document.cjs`: composición A4 y campos vinculados para impresión.
-- `src/renderer.js`, `src/index.html`, `src/styles.css`: interfaz en español, sin dependencias web remotas.
-- `assets/`: plantillas originales extraídas, medidas e iconos.
-- `build/windows.nsi`, `build/installer.nsh`: instalador por usuario y desinstalación que conserva datos.
+`src/store.cjs` gestiona datos, migración y respaldos; `assets.cjs` valida e importa imágenes; `scanner.cjs` vigila carpetas; `scene.js` es la composición compartida de vista previa/salida; `output.cjs` exporta e imprime; `completion.js` resuelve sugerencias y datos personales; `autocomplete.js` y `scans.js` implementan sus interfaces. Se conservan los módulos de documentos y plantillas de la versión anterior.
 
-La ventana usa aislamiento de contexto, sandbox y Node.js desactivado. Las solicitudes de disco pasan por operaciones específicas; las imágenes usan un protocolo local que valida los nombres. Los valores del formulario se insertan como texto y se escapan al generar el PDF. Las copias externas conservan las imágenes utilizadas por las plantillas, sin incluir cachés del navegador.
+La ventana mantiene aislamiento de contexto, Node.js desactivado y operaciones IPC específicas. Los protocolos de imagen validan nombres o identificadores de archivos elegidos desde la carpeta configurada. Los textos se escapan antes de componer la salida. No se ejecuta código generado por el usuario ni se incrustan credenciales.

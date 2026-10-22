@@ -3,9 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' sath-image:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' sath-image: sath-scan:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>SATH Escritorio</title>
 <link rel="stylesheet" href="styles.css">
+<script src="scene.js" defer></script>
+<script src="completion.js" defer></script>
+<script src="autocomplete.js" defer></script>
+<script src="scans.js" defer></script>
 <script src="renderer.js" defer></script>
 </head>
 <body>
@@ -15,9 +19,10 @@
   <nav aria-label="Navegación principal">
     <button class="nav active" data-view="documents"><span>▤</span> Documentos <b id="document-count">0</b></button>
     <button class="nav" data-view="templates"><span>▧</span> Plantillas A4 <b id="template-count">2</b></button>
+    <button class="nav" data-view="scans"><span>▣</span> Escaneos Pro <b>2.0</b></button>
     <button class="nav" data-view="settings"><span>⚙</span> Datos y respaldos</button>
   </nav>
-  <div class="sidebar-bottom"><div class="offline"><i></i> Sin conexión, sin complicaciones</div><p>Tus documentos permanecen<br>en este equipo.</p><span id="app-version">Versión 1.0.0</span></div>
+  <div class="sidebar-bottom"><div class="offline"><i></i> Sin conexión, sin complicaciones</div><p>Tus documentos permanecen<br>en este equipo.</p><span id="app-version">Versión 2.0.0</span></div>
 </aside>
 <div class="app-shell">
   <header class="topbar"><div class="breadcrumbs">Mi espacio <span>/</span> <strong id="breadcrumb">Documentos</strong></div><div id="save-status" role="status"><i></i> Todos los cambios guardados</div></header>
@@ -32,7 +37,7 @@
             <div class="document-toolbar panel"><div class="document-identity"><input id="document-title" maxlength="160" aria-label="Nombre del documento"><span id="document-template-name"></span></div><div class="toolbar-actions"><button id="duplicate-document" title="Duplicar documento">Duplicar</button><button id="delete-document" class="danger subtle" title="Eliminar documento">Eliminar</button></div></div>
             <div class="work-grid">
               <section class="panel form-panel"><div class="panel-title"><h2>Datos del formulario</h2><span id="completion">0 %</span></div><div class="progress-track"><div id="progress"></div></div><p class="help">Los cambios se guardan automáticamente.</p><form id="fields-form" autocomplete="off"></form></section>
-              <section class="preview-panel"><div class="preview-bar"><div><span class="live-dot"></span><strong>Vista previa</strong><span class="a4-tag">A4 · 210 × 297 mm</span></div><label>Zoom <select id="zoom" aria-label="Zoom de vista previa"><option value="fit">Ajustar</option><option value="0.75">75 %</option><option value="1">100 %</option><option value="1.25">125 %</option></select></label></div><div class="paper-viewport" id="preview-viewport"><div class="paper-stage"><div class="paper" id="document-paper"></div></div></div><div class="output-bar panel"><label class="switch-label"><input type="checkbox" id="with-background" checked> Incluir plantilla de fondo</label><div><button id="print-document">Imprimir</button><button class="primary" id="pdf-document">↓ Guardar PDF</button></div></div><p class="preview-note">Desactiva el fondo para imprimir sobre un formulario físico.</p></section>
+              <section class="preview-panel"><div class="preview-bar"><div><span class="live-dot"></span><strong>Vista previa</strong><span class="a4-tag">A4 · 210 × 297 mm</span></div><label>Zoom <select id="zoom" aria-label="Zoom de vista previa"><option value="fit">Ajustar</option><option value="0.75">75 %</option><option value="1">100 %</option><option value="1.25">125 %</option></select></label></div><div class="paper-viewport" id="preview-viewport"><div class="paper-stage"><div class="paper" id="document-paper"></div></div></div><div class="output-bar panel"><label class="switch-label"><input type="checkbox" id="with-background" checked> Incluir plantilla de fondo</label><div><button id="png-document">PNG</button><button id="jpg-document">JPG</button><button id="print-document">Imprimir</button><button class="primary" id="pdf-document">↓ Guardar PDF</button></div></div><p class="preview-note">Desactiva el fondo para imprimir sobre un formulario físico.</p></section>
             </div>
           </div>
         </div>
@@ -48,7 +53,7 @@
     </section>
     <section id="settings-view" hidden>
       <div class="page-heading"><div><div class="eyebrow">CONTROL LOCAL</div><h1>Tu información, contigo.</h1><p>Guarda una copia de tus documentos y plantillas antes de cambiar de equipo.</p></div></div>
-      <div class="settings-grid"><article class="panel settings-card"><span class="card-icon">▣</span><h2>Archivos en este equipo</h2><p>Las imágenes son archivos JPG o PNG. Los documentos se guardan por separado y no necesitan Internet.</p><code id="data-path"></code><button id="open-folder">Abrir carpeta de datos</button><p class="help">En Windows, la carpeta <strong>datos</strong> está junto al programa instalado. No la borres ni la muevas mientras utilizas la aplicación.</p></article><article class="panel settings-card"><span class="card-icon">↗</span><h2>Respaldar y recuperar</h2><p>Un respaldo incluye todos los documentos, las plantillas y sus imágenes. Guárdalo en otra unidad o en una carpeta segura.</p><button id="backup" class="primary">Crear respaldo completo</button><button id="restore">Restaurar respaldo…</button><p class="help">Para restaurar, selecciona <strong>documentos.json</strong> dentro de un respaldo y conserva su carpeta <strong>imagenes</strong>.</p></article></div>
+      <div class="settings-grid"><article class="panel settings-card"><span class="card-icon">▣</span><h2>Archivos en este equipo</h2><p>Las imágenes son archivos JPG, PNG o WEBP. Los documentos se guardan por separado y no necesitan Internet.</p><code id="data-path"></code><button id="open-folder">Abrir carpeta de datos</button><p class="help">En Windows, la carpeta <strong>datos</strong> está junto al programa instalado. No la borres ni la muevas mientras utilizas la aplicación.</p></article><article class="panel settings-card"><span class="card-icon">↗</span><h2>Respaldar y recuperar</h2><p>Un respaldo incluye todos los documentos, las plantillas y sus imágenes. Guárdalo en otra unidad o en una carpeta segura.</p><button id="backup" class="primary">Crear respaldo completo</button><button id="restore">Restaurar respaldo…</button><p class="help">Para restaurar, selecciona <strong>documentos.json</strong> dentro de un respaldo y conserva su carpeta <strong>imagenes</strong>.</p></article></div>
       <div class="info-note">La copia automática conserva la versión anterior del archivo de datos. Un respaldo externo te protege también si se pierde o falla el equipo. Los respaldos contienen datos personales: guárdalos en un lugar privado.</div>
     </section>
   </main>

@@ -27,11 +27,12 @@ async function flush() {
 async function action(task) { try { await task(); } catch (error) { toast(error.message,true); } }
 function showView(next) {
   view = next;
-  for (const name of ['documents','templates','settings']) $(name + '-view').hidden = name !== next;
+  for (const name of ['documents','templates','scans','settings']) $(name + '-view').hidden = name !== next;
   document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active',b.dataset.view === next));
-  $('breadcrumb').textContent = {documents:'Documentos',templates:'Plantillas A4',settings:'Datos y respaldos'}[next];
+  $('breadcrumb').textContent = {documents:'Documentos',templates:'Plantillas A4',settings:'Datos y respaldos',scans:'Escaneos Pro'}[next];
   if (next === 'templates') renderTemplates();
   if (next === 'documents') renderDocuments();
+  if(next === 'scans') {renderGallery();renderScene();}
   requestAnimationFrame(resizePapers);
 }
 function refreshCounts() { $('document-count').textContent = state.documents.length; $('template-count').textContent = state.templates.length; }
@@ -60,6 +61,7 @@ function renderDocuments() {
     if (f.special === 'email_list') input.type = 'email';
     input.style.textTransform = f.textTransform;
     input.oninput = () => {
+      input.setCustomValidity('');
       let value = input.value;
       if (f.special === 'dni') value = value.replace(/\D/g,'').slice(0,8);
       if (f.textTransform === 'uppercase') value = value.toUpperCase();
@@ -76,6 +78,7 @@ function renderDocuments() {
     form.append(label);
   }
   form.onsubmit = event => event.preventDefault(); updateProgress();
+  decorateForm();
   drawPaper($('document-paper'),t,d.values); $('document-paper').dataset.template = t.id; $('document-paper').dataset.background = String($('with-background').checked); requestAnimationFrame(resizePapers);
 }
 function valueFor(f,t,values) {
@@ -201,8 +204,8 @@ function startDrag(event,node,f) {
 async function output(kind) {
   const d = currentDocument(); if (!d) return;
   if (!$('fields-form').reportValidity()) {toast('Revisa los campos marcados antes de continuar.',true);return;}
-  await flush(); const buttons = [$('pdf-document'),$('print-document')]; buttons.forEach(b => b.disabled = true);
-  try { const result = await api.output({kind,documentId:d.id,background:$('with-background').checked}); if (result) toast(kind === 'pdf' ? 'PDF guardado correctamente.' : 'Documento enviado a impresión.'); }
+  await flush(); const buttons = [$('pdf-document'),$('print-document'),$('png-document'),$('jpg-document')]; buttons.forEach(b => b.disabled = true);
+  try { const result = await api.output({kind,documentId:d.id,background:$('with-background').checked}); if (result) toast(kind === 'print' ? 'Documento enviado a impresión.' : kind.toUpperCase()+' guardado correctamente.'); }
   finally {buttons.forEach(b => b.disabled = false);}
 }
 async function init() {
@@ -226,7 +229,7 @@ async function init() {
   $('duplicate-document').onclick = () => { if(state.documents.length>=2000){toast('Límite de 2000 documentos alcanzado.',true);return;}const d=structuredClone(currentDocument()); d.id=uid();d.title=(d.title.slice(0,150)+' (copia)');d.updatedAt=new Date().toISOString();state.documents.push(d);activeDocumentId=d.id;changed();renderDocuments(); };
   $('delete-document').onclick = () => action(async () => {const d=currentDocument();if (!await confirmDelete('¿Eliminar este documento?',d.title + ' se eliminará de este equipo. Esta acción no modifica la plantilla.'))return;state.documents=state.documents.filter(x=>x.id!==d.id);activeDocumentId=state.documents[0]?.id;changed();renderDocuments();});
   $('with-background').onchange = updateDocumentPaper; $('zoom').onchange=resizePapers;
-  $('pdf-document').onclick=()=>action(()=>output('pdf'));$('print-document').onclick=()=>action(()=>output('print'));
+  $('pdf-document').onclick=()=>action(()=>output('pdf'));$('print-document').onclick=()=>action(()=>output('print'));$('png-document').onclick=()=>action(()=>output('png'));$('jpg-document').onclick=()=>action(()=>output('jpg'));
   $('new-template').onclick=()=>{if(state.templates.length>=100){toast('Límite de 100 plantillas alcanzado.',true);return;}const t={id:uid(),name:'Nueva plantilla',image:null,fields:[]};state.templates.push(t);activeTemplateId=t.id;activeFieldId=null;changed();renderTemplates();};
   $('template-name').onchange=e=>{const name=e.target.value.trim();if(!name){e.target.value=currentTemplate().name;return;}currentTemplate().name=name;changed();renderTemplates();};
   $('close-template').onclick=()=>{activeTemplateId=null;$('template-editor').hidden=true;};
@@ -236,10 +239,12 @@ async function init() {
   $('add-field').onclick=()=>{const t=currentTemplate();if(t.fields.length>=200){toast('Máximo 200 campos por plantilla.',true);return;}const f={id:uid(),label:'Nuevo campo',left:15,top:25,width:35,height:3,fontFamily:'Arial, sans-serif',fontSize:14,fontWeight:'400',textAlign:'left',textTransform:'uppercase',letterSpacing:0,color:'#000000',special:'normal'};t.fields.push(f);activeFieldId=f.id;changed();renderTemplateEditor();};
   $('open-folder').onclick=()=>action(async()=>{const error=await api.openFolder();if(error)throw new Error(error);});
   $('backup').onclick=()=>action(async()=>{await flush();const folder=await api.backup();if(folder)toast('Respaldo completo guardado en:\n'+folder);});
-  $('restore').onclick=()=>action(async()=>{await flush();const restored=await api.restore();if(restored){state=restored;activeDocumentId=state.documents[0]?.id;activeTemplateId=null;revision++;savedRevision=revision;$('document-paper').dataset.template='';renderDocuments();renderTemplates();toast('Respaldo restaurado. Se conservó una copia de los datos anteriores.');}});
+  $('restore').onclick=()=>action(async()=>{await flush();const restored=await api.restore();if(restored){state=restored;activeDocumentId=state.documents[0]?.id;activeTemplateId=null;revision++;savedRevision=revision;$('document-paper').dataset.template='';renderDocuments();renderTemplates();resetScansAfterRestore();toast('Respaldo restaurado. Se conservó una copia de los datos anteriores.');}});
   api.onClose(()=>action(async()=>{if(closing)return;closing=true;try{await flush();await api.close();}finally{closing=false;}}));
   window.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();action(async()=>{await flush();toast('Cambios guardados.');});}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='n'){event.preventDefault();if(!$('new-dialog').open)openNewDocument();}});
   new ResizeObserver(resizePapers).observe($('app-shell')||document.querySelector('.app-shell'));
+  initAutocomplete(); initScans();
+  if(loaded.migrated)toast('Datos actualizados a la versión 2. Se creó un respaldo completo de la versión anterior.');
   renderDocuments(); refreshCounts();
 }
 init().catch(error=>{saveStatus('No se pudo cargar la información.','error');toast(error.message,true);});

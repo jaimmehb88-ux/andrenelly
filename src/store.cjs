@@ -1,13 +1,14 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const {validateProject} = require('./scene.js');
 
-const imageName = /^(?:plantilla-[12]|[a-f0-9-]{36})\.(?:jpg|png)$/;
+const imageName = /^(?:plantilla-[12]|[a-f0-9-]{36})\.(?:jpg|png|webp)$/;
 const idPattern = /^[A-Za-z0-9_-]{1,100}$/;
 function check(value, message) { if (!value) throw new Error(message); }
 function text(value, limit = 4000) { return typeof value === 'string' && value.length <= limit; }
 function validate(state) {
-  check(state && state.version === 1, 'Formato de datos no compatible.');
+  check(state && [1,2].includes(state.version), 'Formato de datos no compatible.');
   check(Array.isArray(state.templates) && state.templates.length > 0 && state.templates.length <= 100, 'Se requieren entre 1 y 100 plantillas.');
   const templateIds = new Set();
   for (const t of state.templates) {
@@ -42,7 +43,27 @@ function validate(state) {
     check(d.values && typeof d.values === 'object' && !Array.isArray(d.values) && Object.keys(d.values).length <= 200, 'Valores no válidos.');
     for (const [key,v] of Object.entries(d.values)) check(idPattern.test(key) && text(v), 'Contenido de campo no válido o demasiado largo.');
   }
+  if (state.version === 2) {
+    const settings = state.settings;
+    check(settings && (settings.scanFolder === null || text(settings.scanFolder,4096)), 'Carpeta de escaneos no válida.');
+    const a = settings.autocomplete;
+    check(a && typeof a.enabled === 'boolean' && typeof a.history === 'boolean' && a.fields && typeof a.fields === 'object' && !Array.isArray(a.fields) && Object.keys(a.fields).length <= 20000, 'Configuración de autocompletado no válida.');
+    for (const [key,config] of Object.entries(a.fields)) {
+      check(/^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+$/.test(key) && key.length<=201 && config && typeof config.enabled==='boolean' && Array.isArray(config.suggestions) && config.suggestions.length<=100 && config.suggestions.every(v=>text(v) && v.trim()), 'Sugerencias de campo no válidas.');
+    }
+    check(Array.isArray(state.projects) && state.projects.length <= 500, 'Máximo 500 proyectos de escaneo.');
+    const ids = new Set();
+    for (const project of state.projects) { validateProject(project); check(!ids.has(project.id),'Proyecto duplicado.'); ids.add(project.id); }
+  }
   return state;
+}
+function migrate(state) {
+  validate(state);
+  if (state.version === 2) return state;
+  return {...structuredClone(state),version:2,settings:{scanFolder:null,autocomplete:{enabled:true,history:false,fields:{}}},projects:[]};
+}
+function imageReferences(state) {
+  return [...state.templates.filter(t=>t.image),...(state.projects||[]).flatMap(p=>p.layers.filter(l=>l.type==='image'))];
 }
 
 class Store {
@@ -53,26 +74,34 @@ class Store {
       try { await fs.copyFile(path.join(this.assets, name), path.join(this.images, name), require('node:fs').constants.COPYFILE_EXCL); }
       catch (e) { if (e.code !== 'EEXIST') throw e; }
     }
-    try { return { state: validate(JSON.parse(await fs.readFile(this.file, 'utf8'))), recovered: false }; }
+    let state, recovered = false;
+    try { state = validate(JSON.parse(await fs.readFile(this.file,'utf8'))); }
     catch (e) {
       if (e.code === 'ENOENT') {
-        const state = validate({ version: 1, templates: JSON.parse(await fs.readFile(path.join(this.assets, 'templates.json'), 'utf8')), documents: [] });
-        await this.save(state, false); return { state, recovered: false };
+        state = migrate({version:1,templates:JSON.parse(await fs.readFile(path.join(this.assets,'templates.json'),'utf8')),documents:[]});
+        await this.save(state,false); return {state,recovered:false,migrated:false};
       }
-      try {
-        const state = validate(JSON.parse(await fs.readFile(this.file + '.bak', 'utf8')));
-        // Preserve the damaged file for diagnosis before restoring the last good snapshot.
-        await fs.copyFile(this.file, this.file + '.damaged-' + Date.now());
-        await this.save(state, false); return { state, recovered: true };
-      } catch { throw new Error('No se pueden leer los datos ni su copia automática. Conserva la carpeta datos y restaura un respaldo.'); }
+      try { state = validate(JSON.parse(await fs.readFile(this.file+'.bak','utf8'))); }
+      catch { throw new Error('No se pueden leer los datos ni su copia automática. Conserva la carpeta datos y restaura un respaldo.'); }
+      await fs.copyFile(this.file,this.file+'.damaged-'+Date.now()); recovered = true;
     }
+    const migrated = state.version === 1;
+    if (migrated) {
+      // This complete, readable v1 backup is created before changing any data.
+      await this.backup(state,path.join(this.root,'respaldos','migraciones'));
+      state = migrate(state);
+    }
+    if (migrated || recovered) await this.save(state,!recovered);
+    return {state,recovered,migrated};
   }
   async save(state, preserve = true) {
     validate(state);
-    for (const t of state.templates) if (t.image) await fs.access(path.join(this.images, t.image));
+    for (const t of imageReferences(state)) if (t.image) await fs.access(path.join(this.images, t.image));
+    const serialized=JSON.stringify(state,null,2);
+    check(Buffer.byteLength(serialized) <= 40*1024*1024, 'Los datos superan 40 MB. Respalda y elimina proyectos antiguos.');
     const temporary = this.file + '.' + randomUUID() + '.tmp';
     const handle = await fs.open(temporary, 'wx');
-    try { await handle.writeFile(JSON.stringify(state, null, 2)); await handle.sync(); } finally { await handle.close(); }
+    try { await handle.writeFile(serialized); await handle.sync(); } finally { await handle.close(); }
     try {
       if (preserve) {
         try { await fs.copyFile(this.file, this.file + '.bak'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
@@ -84,31 +113,41 @@ class Store {
     validate(state);
     const folder = path.join(destination, 'SATH-respaldo-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + randomUUID().slice(0,8));
     await fs.mkdir(path.join(folder, 'imagenes'), {recursive:true});
-    for (const name of new Set(state.templates.map(t => t.image).filter(Boolean))) await fs.copyFile(path.join(this.images,name),path.join(folder,'imagenes',name));
+    for (const name of new Set(imageReferences(state).map(t => t.image))) await fs.copyFile(path.join(this.images,name),path.join(folder,'imagenes',name));
     await fs.writeFile(path.join(folder,'documentos.json'), JSON.stringify(state,null,2));
     return folder;
   }
   async restore(file) {
-    const stat = await fs.lstat(file); check(stat.isFile() && stat.size <= 20 * 1024 * 1024, 'Archivo de respaldo demasiado grande o no válido.');
-    const state = validate(JSON.parse(await fs.readFile(file, 'utf8')));
-    const remap = new Map(); const pending = [];
-    for (const t of state.templates) {
-      if (!t.image) continue;
-      if (!remap.has(t.image)) {
-        const source = path.join(path.dirname(file), 'imagenes', t.image);
-        const stat = await fs.lstat(source); check(stat.isFile() && !stat.isSymbolicLink() && stat.size <= 30*1024*1024, 'Imagen de respaldo no válida.');
-        const bytes = await fs.readFile(source); check(imageType(bytes), 'El respaldo contiene una imagen no válida.');
-        const name = randomUUID() + '.' + imageType(bytes); remap.set(t.image,name); pending.push({name,bytes});
+    const stat = await fs.lstat(file); check(stat.isFile() && stat.size <= 40 * 1024 * 1024, 'Archivo de respaldo demasiado grande o no válido.');
+    const state = migrate(validate(JSON.parse(await fs.readFile(file, 'utf8'))));
+    const remap = new Map(), pending = [], copied = [];
+    const staging = await fs.mkdtemp(path.join(this.root,'restauracion-'));
+    let committed = false;
+    try {
+      for (const reference of imageReferences(state)) {
+        const original = reference.image;
+        if (!remap.has(original)) {
+          const source = path.join(path.dirname(file),'imagenes',original);
+          const stat = await fs.lstat(source); check(stat.isFile() && !stat.isSymbolicLink() && stat.size <= 30*1024*1024, 'Imagen de respaldo no válida.');
+          const bytes = await fs.readFile(source), type = imageType(bytes); check(type,'El respaldo contiene una imagen no válida.');
+          const decoder = require('sharp')(bytes,{limitInputPixels:50_000_000,failOn:'warning'});
+          const metadata = await decoder.metadata(); check((metadata.pages||1)===1,'El respaldo contiene una imagen animada no compatible.'); await decoder.stats();
+          const name = randomUUID()+'.'+type; await fs.writeFile(path.join(staging,name),bytes,{flag:'wx'}); pending.push(name); remap.set(original,name);
+        }
+        reference.image = remap.get(original);
       }
-      t.image = remap.get(t.image);
+      for (const name of pending) {await fs.copyFile(path.join(staging,name),path.join(this.images,name),require('node:fs').constants.COPYFILE_EXCL);copied.push(name);}
+      await this.save(state); committed = true; return state;
+    } finally {
+      if(!committed)for(const name of copied)await fs.rm(path.join(this.images,name),{force:true});
+      await fs.rm(staging,{recursive:true,force:true});
     }
-    for (const p of pending) await fs.writeFile(path.join(this.images,p.name),p.bytes,{flag:'wx'});
-    await this.save(state); return state;
   }
 }
 function imageType(bytes) {
   if (bytes.length > 8 && bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) return 'png';
   if (bytes.length > 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return 'jpg';
+  if (bytes.length >= 30 && bytes.toString('ascii',0,4)==='RIFF' && bytes.toString('ascii',8,12)==='WEBP') return 'webp';
   return null;
 }
-module.exports = {Store, validate, imageName, imageType};
+module.exports = {Store, validate, imageName, imageType, migrate, imageReferences};

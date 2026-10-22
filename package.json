@@ -1,7 +1,7 @@
 {
   "name": "sath-escritorio",
-  "version": "1.0.1",
-  "description": "Formularios SATH, plantillas A4 y documentos locales para Windows",
+  "version": "2.0.0",
+  "description": "Formularios SATH y Escaneos Pro: edición A4, autocompletado y documentos locales para Windows",
   "private": true,
   "author": "Andrenelly",
   "main": "src/main.cjs",
@@ -10,7 +10,9 @@
     "test": "node --test test/*.test.cjs",
     "test:ui": "node test/ui.cjs",
     "pack": "electron-builder --dir",
-    "dist:win": "electron-builder --win nsis --x64 --publish never"
+    "dist:win": "electron-builder --win nsis --x64 --publish never",
+    "test:ui:v2": "node test/ui-v2.cjs",
+    "test:packaged": "node test/packaged.cjs"
   },
   "devDependencies": {
     "electron": "45.0.0",
@@ -55,5 +57,8 @@
       "language": "3082",
       "script": "build/windows.nsi"
     }
+  },
+  "dependencies": {
+    "sharp": "0.35.5"
   }
 }

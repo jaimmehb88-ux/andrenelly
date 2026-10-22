@@ -20,6 +20,7 @@ jobs:
       - run: npm ci
       - run: npx install-electron
       - run: npm test
+      - run: npm run test:ui:v2
       - name: Compilar instalador
         shell: pwsh
         env:
@@ -33,6 +34,7 @@ jobs:
             Write-Output "::error title=Error al compilar Windows::$detail"
             exit $buildExit
           }
+      - run: npm run test:packaged
       - uses: actions/upload-artifact@v4
         with:
           name: SATH-Escritorio-Instalador-Windows

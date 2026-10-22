@@ -3,3 +3,7 @@ dist/
 .runtime/
 .test-output/
 *.log
+
+.test-output-v2/
+build-windows.log
+.test-packaged/
