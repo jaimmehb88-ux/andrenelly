@@ -41,12 +41,12 @@ const digest=b=>createHash('sha256').update(b).digest('hex');
    const after=await page.evaluate(()=>structuredClone(layerNow()));assert.ok(after.width>before.width+30);assert.ok(Math.abs(after.width/after.height-200/120)<1e-6);
    await page.locator('#scene-undo').click();assert.equal(Number(await page.locator('#layer-width').inputValue()),200);await page.locator('#scene-redo').click();assert.ok(Number(await page.locator('#layer-width').inputValue())>230);
   }
-  await page.locator('#scene-zoom').selectOption('1');await page.locator('#layer-keep-ratio').uncheck();
+  await page.locator('#scene-zoom').selectOption('1');await page.locator('#layer-keep-ratio').uncheck();await page.locator('.grip-se').scrollIntoViewIfNeeded();
   const before=await page.evaluate(()=>structuredClone(layerNow()));let box=await page.locator('.grip-se').boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2+30,box.y+box.height/2,{steps:4});await page.mouse.up();
   let after=await page.evaluate(()=>structuredClone(layerNow()));assert.ok(Math.abs(after.width/after.height-before.width/before.height)>.01);
   await page.getByRole('button',{name:'Bloquear Imagen v2',exact:true}).click();assert.equal(await page.locator('.resize-grip').count(),0);await page.getByRole('button',{name:'Desbloquear Imagen v2',exact:true}).click();assert.equal(await page.locator('.resize-grip').count(),8);
   await page.evaluate(()=>flush());loaded=await page.evaluate(()=>window.sath.load());assert.equal(loaded.state.projects[0].layers[0].width,after.width);assert.equal(digest(await fs.readFile(path.join(data,'imagenes',image))),digest(original));
-  await page.screenshot({path:path.join(out,'redimensionamiento.png'),fullPage:true});
+  await page.locator('#scene-zoom').selectOption('fit');await page.screenshot({path:path.join(out,'redimensionamiento.png'),fullPage:true});
   await page.locator('#developer-mode').click();await page.locator('#new-password').fill('nueva-v3');await page.locator('#repeat-password').fill('nueva-v3');await page.locator('#password-form button[type=submit]').click();await page.locator('#password-message').filter({hasText:'actualizada'}).waitFor();
   await page.locator('#toggle-pro').click();await page.locator('#toggle-pro').filter({hasText:'Desactivar'}).waitFor();await page.locator('#developer-logout').click();assert.ok(await page.locator('[data-view=scans]').isVisible());
   await assert.rejects(page.evaluate(()=>window.sath.setPro(false)));await stop();
