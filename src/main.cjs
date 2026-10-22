@@ -90,9 +90,11 @@ async function start() {
   });
   handle('batch-output',async options=>{
     if(!options||!Array.isArray(options.tokens)||!options.tokens.length||options.tokens.length>100||!['pdf','print'].includes(options.kind)||typeof options.landscape!=='boolean')throw new Error('Selecciona de 1 a 100 imágenes.');
-    const projects=[];
-    for(const token of options.tokens){const file=await scanner.resolve(token),asset=await importAsset(file,store.images),page=options.landscape?{width:1123,height:794}:{...Scene.A4};projects.push({id:randomUUID(),title:path.basename(file),updatedAt:new Date().toISOString(),page,layers:[Scene.imageLayer(randomUUID(),asset.name,path.basename(file),asset,page)]});}
-    return sceneOutput({projects,kind:options.kind,owner:mainWindow,root:store.root,images:store.images});
+    const projects=[],temporary=await fs.mkdtemp(path.join(store.root,'lote-'));
+    try {
+      for(const token of options.tokens){const file=await scanner.resolve(token),asset=await importAsset(file,temporary),page=options.landscape?{width:1123,height:794}:{...Scene.A4};projects.push({id:randomUUID(),title:path.basename(file),updatedAt:new Date().toISOString(),page,layers:[Scene.imageLayer(randomUUID(),asset.name,path.basename(file),asset,page)]});}
+      return await sceneOutput({projects,kind:options.kind,owner:mainWindow,root:store.root,images:temporary});
+    } finally {await fs.rm(temporary,{recursive:true,force:true});}
   });
   handle('backup', () => exclusive(async () => {
     const selection = await dialog.showOpenDialog(mainWindow,{title:'Elegir dónde guardar el respaldo',properties:['openDirectory','createDirectory']});
