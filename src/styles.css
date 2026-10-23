@@ -23,3 +23,6 @@ button.primary{background:#087449;border-color:#087449;color:white}button.primar
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}#welcome{display:none!important}}
 
 #welcome{transition:opacity 280ms ease}#welcome.welcome-exit{opacity:0;pointer-events:none}
+
+/* Keep fit-to-page ResizeObservers from toggling scrollbar width in Chromium 108. */
+html,.paper-viewport,.scene-viewport{overflow-y:scroll}
