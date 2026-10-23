@@ -1,3 +1,4 @@
+const {waitFor}=require('./wait.cjs');
 const {_electron:electron}=require('playwright-core');
 const fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
 const sharp=require('sharp'),{randomUUID,createHash}=require('node:crypto');
@@ -25,7 +26,7 @@ const digest=b=>createHash('sha256').update(b).digest('hex');
   await launch();
   await page.locator('#welcome img').evaluateAll(imgs=>Promise.all(imgs.map(i=>i.decode())));
   assert.equal(await page.locator('#welcome img').count(),2);assert.ok(await page.locator('#welcome').isVisible());
-  await page.waitForFunction(()=>Array.from(document.querySelectorAll('#welcome img')).every(i=>getComputedStyle(i).opacity==='1'));await page.screenshot({path:path.join(out,'bienvenida.png')});await page.locator('#skip-welcome').click();await page.locator('#welcome').waitFor({state:'hidden'});assert.ok(await page.locator('#welcome').isHidden());
+  await waitFor(page,()=>Array.from(document.querySelectorAll('#welcome img')).every(i=>getComputedStyle(i).opacity==='1'));await page.screenshot({path:path.join(out,'bienvenida.png')});await page.locator('#skip-welcome').click();await page.locator('#welcome').waitFor({state:'hidden'});assert.ok(await page.locator('#welcome').isHidden());
   let loaded=await page.evaluate(()=>window.sath.load());assert.deepEqual(loaded.state,previous);assert.deepEqual(loaded.access,{developer:false,pro:false});
   const marker=JSON.parse(await fs.readFile(path.join(data,'actualizacion-3.0.0.json'),'utf8'));assert.deepEqual(JSON.parse(await fs.readFile(path.join(marker.backup,'documentos.json'),'utf8')),previous);assert.equal(digest(await fs.readFile(path.join(marker.backup,'imagenes',image))),digest(original));
   assert.ok(await page.locator('[data-view=scans]').isHidden());await page.locator('[data-view=templates]').click();assert.ok(await page.locator('#new-template').isHidden());assert.ok(await page.getByRole('button',{name:'Usar plantilla',exact:true}).first().isVisible());await forbidden();
