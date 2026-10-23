@@ -53,9 +53,11 @@ test('escáner ordena las últimas seis y admite WEBP, cambios, borrados y carpe
  const{root}=await fixture(t),folder=path.join(root,'escaneos');await fs.mkdir(folder);const bytes=await sharp({create:{width:35,height:40,channels:3,background:'#2050aa'}}).png().toBuffer();
  for(let i=0;i<8;i++){const file=path.join(folder,`foto-${i}.png`);await fs.writeFile(file,bytes);const when=new Date(Date.now()-20000+i*1000);await fs.utimes(file,when,when);}
  await fs.writeFile(path.join(folder,'dañada.jpg'),'no es imagen');await fs.writeFile(path.join(folder,'otro.pdf'),'no soportado');
+ // Windows timestamps may be fractions of a millisecond ahead of Date.now().
+ const settled=new Date(Date.now()-1000);await fs.utimes(path.join(folder,'dañada.jpg'),settled,settled);
  const scanner=new Scanner({interval:999999,stability:0});t.after(()=>scanner.close());await scanner.setFolder(folder);const list=scanner.snapshot();assert.equal(list.entries.length,6);assert.equal(list.entries[0].name,'foto-7.png');assert.equal(scanner.snapshot(true).entries.length,8);assert.match(list.message,/dañados/);assert.match(list.message,/omitidos/);
  const oldToken=list.entries[0].token;await fs.rm(path.join(folder,'foto-7.png'));await scanner.refresh();await assert.rejects(scanner.resolve(oldToken));assert.equal(scanner.snapshot().entries[0].name,'foto-6.png');
- const webp=path.join(folder,'nueva.webp');await sharp(bytes).webp().toFile(webp);await scanner.refresh();assert.equal(scanner.snapshot().entries[0].name,'nueva.webp');assert.ok(await scanner.resolve(scanner.snapshot().entries[0].token));
+ const webp=path.join(folder,'nueva.webp');await sharp(bytes).webp().toFile(webp);const copied=new Date(Date.now()-1000);await fs.utimes(webp,copied,copied);await scanner.refresh();assert.equal(scanner.snapshot().entries[0].name,'nueva.webp');assert.ok(await scanner.resolve(scanner.snapshot().entries[0].token));
  await fs.rename(folder,folder+'-offline');await scanner.refresh();assert.equal(scanner.snapshot().entries.length,0);assert.match(scanner.snapshot().message,/no está disponible/);await fs.rename(folder+'-offline',folder);await scanner.refresh();assert.equal(scanner.snapshot().entries[0].name,'nueva.webp');
 });
 test('no muestra archivos incompletos; los vuelve a validar al terminar de copiarse',async t=>{

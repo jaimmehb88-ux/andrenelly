@@ -58,6 +58,14 @@ jobs:
         env:
           SATH_TARGET_ARCH: ${{ matrix.arch }}
       - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: Diagnostico-Windows7-${{ matrix.arch }}
+          path: |
+            .win7-build/.test-output-v2/error.png
+            .win7-build/.test-output-v3/**/*.png
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
         with:
           name: Windows7-${{ matrix.arch }}
           path: .win7-build/dist/*-Instalador.exe
