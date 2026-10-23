@@ -43,7 +43,7 @@ async function start() {
       const token=url.pathname.slice(1),file=await scanner.resolve(token);
       if(url.searchParams.get('thumb')==='1'){
         if(!scanThumbnails.has(token)){
-          const pending=thumbnailQueue.then(()=>sharp(file,{limitInputPixels:50_000_000}).rotate().resize({width:480,height:360,fit:'inside',withoutEnlargement:true}).webp({quality:80}).toBuffer());
+          const pending=thumbnailQueue.then(async()=>sharp(await fs.readFile(file),{limitInputPixels:50_000_000}).rotate().resize({width:480,height:360,fit:'inside',withoutEnlargement:true}).webp({quality:80}).toBuffer());
           thumbnailQueue=pending.catch(()=>{});scanThumbnails.set(token,pending);if(scanThumbnails.size>24)scanThumbnails.delete(scanThumbnails.keys().next().value);
         }
         return {data:await scanThumbnails.get(token),mimeType:'image/webp'};
