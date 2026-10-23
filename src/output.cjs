@@ -31,7 +31,7 @@ async function sceneOutput({projects,kind,dpi=150,owner,root,images}) {
     if(raster)await win.webContents.insertCSS(`html,body{width:${width}px;height:${height}px;overflow:hidden}.page{width:${width}px!important;height:${height}px!important}`);
     await win.webContents.executeJavaScript(`Promise.all([document.fonts.ready,...Array.from(document.querySelectorAll('image'),node=>{const image=new Image();image.src=node.getAttribute('href');return image.decode();})]).then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))`);
     let bytes;
-    if(kind==='pdf')bytes=await win.webContents.printToPDF({printBackground:true,preferCSSPageSize:true,pageSize:{width:landscape?297000:210000,height:landscape?210000:297000},margins:{top:0,bottom:0,left:0,right:0}});
+    if(kind==='pdf')bytes=await win.webContents.printToPDF({printBackground:true,preferCSSPageSize:true,pageSize:'A4',landscape,margins:{top:0,bottom:0,left:0,right:0}});
     else if(raster){
       // Capture at native resolution in tiles: Windows and virtual displays can
       // clamp large hidden windows. No scaling or second composition is used.
