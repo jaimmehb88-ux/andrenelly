@@ -13,3 +13,5 @@ build-windows.log
 .test-output-v3/
 pnpm-lock.yaml
 pnpm-workspace.yaml
+
+.win7-build/

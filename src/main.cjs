@@ -1,7 +1,9 @@
+// Electron 22 embeds Node 16, which has no global structuredClone.
+if (typeof globalThis.structuredClone !== 'function') globalThis.structuredClone = value => require('node:v8').deserialize(require('node:v8').serialize(value));
+const {registerImageProtocol} = require('./image-protocol.cjs');
 const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
 const { randomUUID } = require('node:crypto');
 const { Store, validate, imageName } = require('./store.cjs');
 const { printHTML } = require('./document.cjs');
@@ -36,24 +38,22 @@ async function start() {
   access=new Access(root);await access.initialize();
   scanner = new Scanner();
   await scanner.setFolder(state.settings.scanFolder,{wait:false});
-  protocol.handle('sath-scan',async request=>{
-    try{
-      access.requireTools();const url=new URL(request.url);if(url.hostname!=='local')return new Response('No permitido',{status:403});
+  registerImageProtocol({protocol,net},'sath-scan',async request=>{
+      access.requireTools();const url=new URL(request.url);if(url.hostname!=='local')throw Object.assign(new Error('No permitido'),{statusCode:403});
       const token=url.pathname.slice(1),file=await scanner.resolve(token);
       if(url.searchParams.get('thumb')==='1'){
         if(!scanThumbnails.has(token)){
           const pending=thumbnailQueue.then(()=>sharp(file,{limitInputPixels:50_000_000}).rotate().resize({width:480,height:360,fit:'inside',withoutEnlargement:true}).webp({quality:80}).toBuffer());
           thumbnailQueue=pending.catch(()=>{});scanThumbnails.set(token,pending);if(scanThumbnails.size>24)scanThumbnails.delete(scanThumbnails.keys().next().value);
         }
-        return new Response(await scanThumbnails.get(token),{headers:{'Content-Type':'image/webp'}});
+        return {data:await scanThumbnails.get(token),mimeType:'image/webp'};
       }
-      return net.fetch(pathToFileURL(file).href);
-    }catch{return new Response('Imagen no disponible',{status:404});}
+      return {path:file};
   });
-  protocol.handle('sath-image', request => {
+  registerImageProtocol({protocol,net},'sath-image', request => {
     const url = new URL(request.url); const name = url.pathname.slice(1);
-    if (url.hostname !== 'local' || !imageName.test(name)) return new Response('No permitido',{status:403});
-    return net.fetch(pathToFileURL(path.join(store.images,name)).href);
+    if (url.hostname !== 'local' || !imageName.test(name)) throw Object.assign(new Error('No permitido'),{statusCode:403});
+    return {path:path.join(store.images,name)};
   });
   mainWindow = new BrowserWindow({ width:1460, height:950, minWidth:1050, minHeight:700, title:'Andrenelly · Formularios SATH', icon:path.join(__dirname,'..','assets','icon.png'), backgroundColor:'#f4f6fa', show:false, webPreferences:{ preload:path.join(__dirname,'preload.cjs'), contextIsolation:true, nodeIntegration:false, sandbox:true, spellcheck:false } });
   mainWindow.webContents.on('render-process-gone',()=>access.logout());

@@ -147,3 +147,19 @@ La primera apertura de 3.0.0 crea un respaldo en `datos/respaldos/antes-de-3.0.0
 - `node test/installer.cjs`: en el usuario aislado de CI, instaladores reales 2.0.0 → 3.0.0, reinstalación y desinstalación con conservación de datos.
 
 El workflow Windows publica 3.0.0 solamente después de todas estas pruebas. Conserva Releases existentes y publica el instalador junto a `SHA256SUMS.txt`. La impresión física requiere comprobación manual.
+
+## Edición Windows 7 SP1 (32 y 64 bits)
+
+El perfil `compat/win7` conserva la aplicación 3.0.0 con Electron 22.3.27 y Sharp 0.32.6. El workflow `windows-win7.yml` genera instaladores independientes `Win7-x64` (64 bits) y `Win7-ia32` (32 bits), y publica la release `v3.0.0-win7` junto a sus SHA-256 únicamente cuando ambas arquitecturas superan las pruebas. La edición moderna conserva su configuración y release.
+
+Para compilar en Windows con Node 22 de la arquitectura correspondiente:
+
+```powershell
+node scripts/prepare-win7.cjs x64 # usar ia32 para 32 bits
+cd .win7-build
+npm ci
+npm test
+npm run dist:win
+```
+
+El directorio `.win7-build` debe ser nuevo; no se sobrescribe una compilación anterior. El perfil tiene su propio archivo de dependencias fijadas. Las pruebas automatizadas se ejecutan en Windows Server 2022, incluyendo el runtime Electron 22 y el módulo nativo Sharp para cada arquitectura; queda pendiente la comprobación en un equipo real Windows 7 y la impresión física. Se requiere Windows 7 SP1 actualizado. Windows 7 y Electron 22 ya no reciben mantenimiento de seguridad. Consulta `compat/win7/release-notes.md`.

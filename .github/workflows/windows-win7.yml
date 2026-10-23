@@ -1,0 +1,93 @@
+name: Instaladores Windows 7 de 32 y 64 bits
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'compat/win7/**'
+      - 'scripts/prepare-win7.cjs'
+      - 'src/**'
+      - 'test/**'
+      - 'assets/**'
+      - 'build/**'
+      - '.github/workflows/windows-win7.yml'
+permissions:
+  contents: read
+concurrency:
+  group: windows7-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            node_arch: x64
+            unpacked: win-unpacked
+          - arch: ia32
+            node_arch: x86
+            unpacked: win-ia32-unpacked
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          architecture: ${{ matrix.node_arch }}
+      - run: node scripts/prepare-win7.cjs ${{ matrix.arch }}
+      - run: npm ci
+        working-directory: .win7-build
+      - run: npm test
+        working-directory: .win7-build
+      - run: npm run test:ui:v2
+        working-directory: .win7-build
+      - run: npm run test:ui:v3
+        working-directory: .win7-build
+      - run: npm run dist:win
+        working-directory: .win7-build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: npm run test:packaged
+        working-directory: .win7-build
+        env:
+          SATH_PACKAGED_DIR: dist/${{ matrix.unpacked }}
+      - run: node test/installer-win7.cjs
+        working-directory: .win7-build
+        env:
+          SATH_TARGET_ARCH: ${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows7-${{ matrix.arch }}
+          path: .win7-build/dist/*-Instalador.exe
+          if-no-files-found: error
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Windows7-*
+          merge-multiple: true
+          path: installers
+      - name: Publicar ambos instaladores sin sustituir la versión moderna
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s installers/SATH-Escritorio-3.0.0-Win7-x64-Instalador.exe
+          test -s installers/SATH-Escritorio-3.0.0-Win7-ia32-Instalador.exe
+          cd installers
+          sha256sum *.exe > SHA256SUMS.txt
+          if gh release view v3.0.0-win7 >/dev/null 2>&1; then
+            echo 'La release Windows 7 ya existe; se conserva sin sobrescribir archivos.'
+            exit 0
+          fi
+          gh release create v3.0.0-win7 *.exe SHA256SUMS.txt --target "$RELEASE_COMMIT" --title 'SATH 3.0.0 · Windows 7 (32 y 64 bits)' --notes-file ../compat/win7/release-notes.md --latest=false

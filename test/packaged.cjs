@@ -7,7 +7,7 @@ const sharp=require('sharp');
 const {setTimeout:delay}=require('node:timers/promises');
 (async()=>{
  if(process.platform!=='win32')throw new Error('Esta comprobación requiere el ejecutable Windows ya compilado.');
- const root=path.resolve(__dirname,'..'),directory=path.join(root,'dist','win-unpacked'),data=path.join(directory,'datos'),out=path.join(root,'.test-packaged');
+ const root=path.resolve(__dirname,'..'),directory=path.resolve(process.env.SATH_PACKAGED_DIR || path.join(root,'dist','win-unpacked')),data=path.join(directory,'datos'),out=path.join(root,'.test-packaged');
  try{await fs.access(data);throw new Error('La carpeta datos ya existe. No se sobrescriben datos de una ejecución anterior.');}catch(error){if(error.code!=='ENOENT')throw error;}
  await fs.mkdir(data);await fs.mkdir(out,{recursive:true});
  const previous={version:1,templates:JSON.parse(await fs.readFile(path.join(root,'assets','templates.json'),'utf8')),documents:[{id:'anterior',title:'Documento v1 conservado',templateId:'hoja_1',updatedAt:new Date().toISOString(),values:{p_1:'CONSERVAR123'}}]};
