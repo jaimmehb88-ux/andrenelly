@@ -19,7 +19,7 @@ function execute(file,args){return new Promise((resolve,reject)=>{const child=sp
     app=await electron.launch({executablePath:exe,args:[],timeout:45000});
     const runtime=await app.evaluate(()=>({arch:process.arch,electron:process.versions.electron}));
     assert.equal(runtime.arch,arch);assert.equal(runtime.electron,'22.3.27');
-    const page=await app.firstWindow();await page.locator('#document-title').waitFor();
+    const page=await app.firstWindow();await page.locator('#app-version').waitFor();
     const loaded=await page.evaluate(()=>window.sath.load());assert.equal(loaded.version,'3.0.0');
     await app.evaluate(({app})=>app.exit(0));await app.close().catch(()=>{});app=null;
   }finally{if(app){await app.evaluate(({app})=>app.exit(0)).catch(()=>{});await app.close().catch(()=>{});}}
